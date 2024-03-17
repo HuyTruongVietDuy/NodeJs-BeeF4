@@ -11,5 +11,6 @@ var db = mysql.createConnection({
 db.queryPromise = util.promisify(db.query);
 db.connect(() => console.log('Da ket noi database !'));
 
+
 module.exports = db; 
 

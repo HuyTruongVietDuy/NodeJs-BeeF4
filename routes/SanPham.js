@@ -1,4 +1,3 @@
-// routes/loaisanpham.js
 const express = require('express');
 const router = express.Router();
 const db = require("../models/database");
@@ -6,155 +5,147 @@ const multer = require('../models/multerConfig');
 const fs = require('fs');
 const path = require('path');
 
-// Route để thêm sản phẩm mới
-router.post('/add', async (req, res) => {
-    try {
-        const { ten_sanpham, id_loaisp } = req.body;
-
-        // Thực hiện truy vấn kiểm tra tên sản phẩm đã tồn tại chưa
-        const checkSql = 'SELECT id_sanpham FROM SanPham WHERE ten_sanpham = ?';
-        const checkResult = await db.queryPromise(checkSql, [ten_sanpham]);
-
-        // Nếu đã tồn tại sản phẩm có cùng tên, trả về lỗi
-        if (checkResult.length > 0) {
-            return res.status(400).json({ message: 'Sản phẩm với tên này đã tồn tại.' });
-        }
-
-        // Nếu không tồn tại, thực hiện thêm sản phẩm vào database
-        const addSql = 'INSERT INTO SanPham (ten_sanpham, id_loaisp, trang_thai) VALUES (?, ?, ?)';
-        await db.queryPromise(addSql, [ten_sanpham, id_loaisp, 1]); // Giả sử trạng thái mặc định là 1
-
-        // Trả về thông báo thành công
-        res.status(200).json({ message: 'Đã thêm sản phẩm mới thành công.' });
-    } catch (error) {
-        console.error('Lỗi khi thêm sản phẩm mới:', error);
-        res.status(500).json({ message: 'Có lỗi xảy ra khi xử lý yêu cầu.' });
-    }
-});
-
-
-// Route để lấy danh sách sản phẩm
+// Route to get the list of products with their corresponding category information
 router.get('/list', async (req, res) => {
     try {
-        // Thực hiện truy vấn để lấy danh sách sản phẩm với tên loại sản phẩm
-        const selectSql = `
-        SELECT 
-        SanPham.id_sanpham, 
-        SanPham.ten_sanpham, 
-        LoaiSanPham.id_loaisp, 
-        LoaiSanPham.ten_loaisp AS ten_loaisp, 
-        SanPham.luot_xem, 
-        SanPham.trang_thai,
-        SanPham.time_add,
-        SanPham.time_update
-    FROM SanPham
-    JOIN LoaiSanPham ON SanPham.id_loaisp = LoaiSanPham.id_loaisp;
-    
+        const query = `
+            SELECT SanPham.*, DanhMuc.id_danhmuc AS id_danhmuc, DanhMuc.ten_danhmuc AS ten_danhmuc
+            FROM SanPham
+            LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
         `;
-        const sanPhamList = await db.queryPromise(selectSql);
-
-        // Trả về danh sách sản phẩm
+        const sanPhamList = await db.queryPromise(query);
         res.status(200).json(sanPhamList);
     } catch (error) {
-        console.error('Lỗi khi lấy danh sách sản phẩm:', error);
-        res.status(500).json({ message: 'Có lỗi xảy ra khi xử lý yêu cầu.' });
+        console.error('Error fetching product list:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    }
+});
+
+// Route to get the list of products with their corresponding category information
+router.get('/listnew', async (req, res) => {
+    try {
+        const query = `
+        SELECT 
+        SanPham.*, 
+        DanhMuc.id_danhmuc AS id_danhmuc, 
+        DanhMuc.ten_danhmuc AS ten_danhmuc, 
+        ChiTietSanPham.*, 
+        MauSanPham.id_mau, 
+        MauSanPham.ten_mau,
+        MauSanPham.Ma_mau,
+        MauSanPham.hinh_anh_1,
+        MauSanPham.hinh_anh_2,
+        MauSanPham.hinh_anh_3,
+        MauSanPham.hinh_anh_4,
+        MauSanPham.hinh_anh_5,
+        MauSanPham.hinh_anh_6,
+        QuanLyKho.so_luong
+    FROM SanPham
+    LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+    LEFT JOIN (
+        SELECT *
+        FROM ChiTietSanPham
+        GROUP BY id_sanpham
+        LIMIT 8
+    ) AS ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
+    LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
+    LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+    ORDER BY SanPham.time_add DESC
+    
+        `;
+        const sanPhamList = await db.queryPromise(query);
+        res.status(200).json(sanPhamList);
+    } catch (error) {
+        console.error('Error fetching product list:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
     }
 });
 
 
 
-// Route để xóa sản phẩm
-router.delete('/delete/:id', async (req, res) => {
+
+router.get('/colors/:id_sanpham', async (req, res) => {
+    const { id_sanpham } = req.params;
+
     try {
-        const productId = req.params.id;
+        const query = `
+            SELECT *
+            FROM MauSanPham
+            WHERE id_chitietsp IN (
+                SELECT id_chitietsp
+                FROM ChiTietSanPham
+                WHERE id_sanpham = ?
+            )
+        `;
+        const colors = await db.queryPromise(query, [id_sanpham]);
+        res.status(200).json(colors);
+    } catch (error) {
+        console.error('Error fetching product colors:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    }
+});
+router.get('/sizes/:id_chitietsp', async (req, res) => {
+    const { id_chitietsp } = req.params;
 
-        // Thực hiện truy vấn để xóa sản phẩm từ database
-        const deleteSql = 'DELETE FROM SanPham WHERE id_sanpham = ?';
-        const result = await db.queryPromise(deleteSql, [productId]);
+    try {
+        const query = `
+            SELECT QLK.*, SS.ten_size
+            FROM quanlykho AS QLK
+            INNER JOIN SizeSanPham AS SS ON QLK.id_size = SS.id_size
+            WHERE QLK.id_chitietsp = ?
+        `;
+        const sizes = await db.queryPromise(query, [id_chitietsp]);
+        res.status(200).json(sizes);
+    } catch (error) {
+        console.error('Error fetching product sizes:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    }
+});
 
-        if (result.affectedRows > 0) {
-            // Sản phẩm đã được xóa thành công
-            res.status(200).json({ message: 'Đã xóa sản phẩm thành công.' });
-        } else {
-            // Không tìm thấy sản phẩm để xóa
-            res.status(404).json({ message: 'Không tìm thấy sản phẩm để xóa.' });
-        }
+
+
+router.post('/them', multer.none(), async (req, res) => {
+    const { ten_sanpham, id_Danhmuc, chatlieu } = req.body; // Receive chatlieu from request body
+    try {
+        // Thêm sản phẩm vào cơ sở dữ liệu với tên sản phẩm, id_Danhmuc, và chatlieu được cung cấp
+        const result = await db.queryPromise('INSERT INTO sanpham (ten_sanpham, id_Danhmuc, chatlieu) VALUES (?, ?, ?)', [ten_sanpham, id_Danhmuc, chatlieu]);
+        // Trả về thông báo thành công và thông tin sản phẩm mới được thêm vào
+        res.status(201).json({ message: 'Thêm sản phẩm thành công', id_sanpham: result.insertId, ten_sanpham });
+    } catch (error) {
+        console.error('Lỗi khi thêm sản phẩm:', error);
+        res.status(500).json({ message: 'Có lỗi xảy ra khi xử lý yêu cầu.' });
+    }
+});
+
+
+router.delete('/xoa/:id', async (req, res) => {
+    const id_sanpham = req.params.id; // Get product ID from request parameters
+    try {
+        // Xóa sản phẩm khỏi cơ sở dữ liệu với id_sanpham được cung cấp
+        await db.queryPromise('DELETE FROM sanpham WHERE id_sanpham = ?', [id_sanpham]);
+        res.status(200).json({ message: 'Xóa sản phẩm thành công' });
     } catch (error) {
         console.error('Lỗi khi xóa sản phẩm:', error);
         res.status(500).json({ message: 'Có lỗi xảy ra khi xử lý yêu cầu.' });
     }
 });
 
+router.put('/sua/:id', multer.none(), async (req, res) => {
+    const id_sanpham = req.params.id; // Nhận ID sản phẩm từ tham số của yêu cầu
+    const { ten_sanpham, id_Danhmuc, chatlieu, trang_thai } = req.body; // Nhận dữ liệu sản phẩm cần sửa từ phần thân của yêu cầu
+    const time_update = new Date().toISOString(); // Lấy thời gian hiện tại
 
-
-
-router.put('/edit/:id', async (req, res) => {
     try {
-      const { ten_sanpham, id_loaisp, trang_thai } = req.body;
-      const id_sanpham = req.params.id;
-  
-      // Check if the product with the given id exists
-      const checkSql = 'SELECT * FROM SanPham WHERE id_sanpham = ?';
-      const checkResult = await db.queryPromise(checkSql, [id_sanpham]);
-  
-      if (checkResult.length === 0) {
-        return res.status(404).json({ "thong bao": "Không tìm thấy sản phẩm với id đã cho" });
-      }
-  
-      // Update ten_sanpham, id_loaisp, and trang_thai fields in the database
-      const updateSql = 'UPDATE SanPham SET ten_sanpham = ?, id_loaisp = ?, trang_thai = ?, time_update = CURRENT_TIMESTAMP WHERE id_sanpham = ?';
-  
-      // Execute the update query
-      const updateResult = await db.queryPromise(updateSql, [ten_sanpham, id_loaisp, trang_thai, id_sanpham]);
-  
-      // Return success response
-      res.status(200).json({ "thong bao": "Đã cập nhật tên sản phẩm, loại sản phẩm, và trạng thái", "id_sanpham": id_sanpham });
+        // Thực hiện truy vấn để cập nhật thông tin sản phẩm trong cơ sở dữ liệu
+        await db.queryPromise('UPDATE sanpham SET ten_sanpham = ?, id_Danhmuc = ?, chatlieu = ?, trang_thai = ?, time_update = ? WHERE id_sanpham = ?', [ten_sanpham, id_Danhmuc, chatlieu, trang_thai, time_update, id_sanpham]);
+        // Trả về thông báo thành công
+        res.status(200).json({ message: 'Sửa sản phẩm thành công' });
     } catch (error) {
-      console.error("Server error:", error);
-      // Handle request processing error
-      res.status(500).json({ "thong bao": "Lỗi xử lý yêu cầu", error: error.message });
-    }
-  });
-  
-
-  
-  
-  // Route để lấy chi tiết sản phẩm dựa trên id_sanpham
-router.get('/details/:id', async (req, res) => {
-    try {
-        const productId = req.params.id;
-
-        // Thực hiện truy vấn để lấy thông tin chi tiết sản phẩm
-        const selectSql = `
-            SELECT 
-                SanPham.id_sanpham, 
-                SanPham.ten_sanpham, 
-                LoaiSanPham.id_loaisp, 
-                LoaiSanPham.ten_loaisp AS ten_loaisp, 
-                SanPham.luot_xem, 
-                SanPham.trang_thai,
-                SanPham.time_add,
-                SanPham.time_update
-            FROM SanPham
-            JOIN LoaiSanPham ON SanPham.id_loaisp = LoaiSanPham.id_loaisp
-            WHERE SanPham.id_sanpham = ?;
-        `;
-        const productDetail = await db.queryPromise(selectSql, [productId]);
-
-        // Kiểm tra xem sản phẩm có tồn tại không
-        if (productDetail.length === 0) {
-            return res.status(404).json({ "thong bao": "Không tìm thấy sản phẩm với id đã cho" });
-        }
-
-        // Trả về thông tin chi tiết của sản phẩm
-        res.status(200).json(productDetail[0]);
-    } catch (error) {
-        console.error('Lỗi khi lấy chi tiết sản phẩm:', error);
+        console.error('Lỗi khi sửa sản phẩm:', error);
         res.status(500).json({ message: 'Có lỗi xảy ra khi xử lý yêu cầu.' });
     }
 });
 
-  
 
 
 

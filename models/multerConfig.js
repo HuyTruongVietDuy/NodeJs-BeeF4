@@ -5,7 +5,7 @@ const path = require('path');
 // Thiết lập storage engine cho Multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/loaisanpham'); // Thư mục lưu trữ hình ảnh
+    cb(null, 'uploads'); // Thư mục lưu trữ hình ảnh
   },
   filename: function (req, file, cb) {
     cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));  
