@@ -10,6 +10,7 @@ var DanhMuc = require('./routes/DanhMuc');
 var SanPham = require('./routes/SanPham');
 var ChiTietSanPham = require('./routes/ChiTietSanPham');
 var KhoHang = require('./routes/KhoHang');
+var DonHang = require('./routes/donhang');
 var app = express();
 
 // view engine setup
@@ -28,6 +29,7 @@ app.use('/danhmuc', DanhMuc);
 app.use('/sanpham', SanPham);
 app.use('/chitietsanpham', ChiTietSanPham);
 app.use('/khohang', KhoHang );
+app.use('/donhang', DonHang );
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
