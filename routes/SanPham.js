@@ -21,37 +21,70 @@ router.get('/list', async (req, res) => {
     }
 });
 
-// Route to get the list of products with their corresponding category information
 router.get('/listnew', async (req, res) => {
     try {
         const query = `
         SELECT 
-        SanPham.*, 
-        DanhMuc.id_danhmuc AS id_danhmuc, 
-        DanhMuc.ten_danhmuc AS ten_danhmuc, 
-        ChiTietSanPham.*, 
-        MauSanPham.id_mau, 
-        MauSanPham.ten_mau,
-        MauSanPham.Ma_mau,
-        MauSanPham.hinh_anh_1,
-        MauSanPham.hinh_anh_2,
-        MauSanPham.hinh_anh_3,
-        MauSanPham.hinh_anh_4,
-        MauSanPham.hinh_anh_5,
-        MauSanPham.hinh_anh_6,
-        QuanLyKho.so_luong
-    FROM SanPham
-    LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-    LEFT JOIN (
-        SELECT *
-        FROM ChiTietSanPham
-        GROUP BY id_sanpham
-        LIMIT 8
-    ) AS ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-    LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-    LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-    ORDER BY SanPham.time_add DESC
-    
+            SanPham.*, 
+            DanhMuc.id_danhmuc AS id_danhmuc, 
+            DanhMuc.ten_danhmuc AS ten_danhmuc, 
+            ChiTietSanPham.*, 
+            MauSanPham.id_mau, 
+            MauSanPham.ten_mau,
+            MauSanPham.Ma_mau,
+            MauSanPham.hinh_anh_1,
+            MauSanPham.hinh_anh_2,
+            MauSanPham.hinh_anh_3,
+            MauSanPham.hinh_anh_4,
+            MauSanPham.hinh_anh_5,
+            MauSanPham.hinh_anh_6,
+            SUM(QuanLyKho.so_luong) AS tong_so_luong
+        FROM SanPham
+        LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+        LEFT JOIN (
+            SELECT *
+            FROM ChiTietSanPham
+            GROUP BY id_sanpham
+            LIMIT 8
+        ) AS ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
+        LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
+        LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+        GROUP BY SanPham.id_sanpham
+        ORDER BY SanPham.time_add DESC
+        `;
+        const sanPhamList = await db.queryPromise(query);
+        res.status(200).json(sanPhamList);
+    } catch (error) {
+        console.error('Error fetching product list:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    }
+});
+
+router.get('/listall', async (req, res) => {
+    try {
+        const query = `
+        SELECT 
+            SanPham.*, 
+            DanhMuc.id_danhmuc AS id_danhmuc, 
+            DanhMuc.ten_danhmuc AS ten_danhmuc, 
+            ChiTietSanPham.*, 
+            MauSanPham.id_mau, 
+            MauSanPham.ten_mau,
+            MauSanPham.Ma_mau,
+            MauSanPham.hinh_anh_1,
+            MauSanPham.hinh_anh_2,
+            MauSanPham.hinh_anh_3,
+            MauSanPham.hinh_anh_4,
+            MauSanPham.hinh_anh_5,
+            MauSanPham.hinh_anh_6,
+            SUM(QuanLyKho.so_luong) AS tong_so_luong
+        FROM SanPham
+        LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+        LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
+        LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
+        LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+        GROUP BY SanPham.id_sanpham
+        ORDER BY SanPham.time_add DESC
         `;
         const sanPhamList = await db.queryPromise(query);
         res.status(200).json(sanPhamList);

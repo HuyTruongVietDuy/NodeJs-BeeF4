@@ -26,7 +26,8 @@ router.get('/list/:id_sanpham', (req, res) => {
             MauSanPham.hinh_anh_4,
             MauSanPham.hinh_anh_5,
             MauSanPham.hinh_anh_6,
-            sanpham.ten_sanpham 
+            sanpham.ten_sanpham ,
+            sanpham.chatlieu 
         FROM 
             chitietsanpham 
         LEFT JOIN 
