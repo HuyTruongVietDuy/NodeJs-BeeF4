@@ -7,15 +7,13 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const PRIVATE_KEY = process.env.PRIVATE_KEY || fs.readFileSync('private-key.txt');
 
-// Danh sách tài khoản và mật khẩu
-const accounts = [
-    { taikhoan: 'user1', matkhau: 'password1', role: 'user' },
-    { taikhoan: 'admin', matkhau: 'adminpassword', role: 'admin' }
-];
 
 router.post('/login', (req, res) => {
     const { ten_dangnhap, matkhau } = req.body;
     console.log('Received login information:', ten_dangnhap, matkhau);
+
+    // Lấy thời gian đăng nhập hiện tại
+    const currentLoginTime = new Date();
 
     // Retrieve user information from the database based on the username
     const query = `SELECT * FROM nguoidung WHERE ten_dangnhap = ?`;
@@ -49,11 +47,21 @@ router.post('/login', (req, res) => {
             }
 
             // Passwords match, generate JWT token
-            const userId = user.id; // Assuming 'id' is the unique identifier in the database
-            const userInfo = { id: userId, ten_dangnhap: user.ten_dangnhap, role: user.role };
+            const userInfo = { ...user }; // Spread operator to get all user data
+            delete userInfo.matkhau; // Remove password from user data
+
+            // Cập nhật thời gian đăng nhập hiện tại vào cơ sở dữ liệu
+            const updateQuery = `UPDATE nguoidung SET login_in = ? WHERE id_user = ?`;
+            db.query(updateQuery, [currentLoginTime, userInfo.id_user], (updateErr, updateResult) => {
+                if (updateErr) {
+                    console.error("Error updating last login time:", updateErr);
+                    res.status(500).json({ "message": "Internal server error" });
+                    return;
+                }
+            });
 
             const jwtBearerToken = jwt.sign(
-                { sub: userId, role: user.role },
+                { sub: userInfo.id_user, role: userInfo.role },
                 PRIVATE_KEY,
                 { algorithm: 'RS256', expiresIn: 120 }
             );
@@ -62,6 +70,7 @@ router.post('/login', (req, res) => {
         });
     });
 });
+
 
 
 // Route để đăng ký người dùng
@@ -92,6 +101,22 @@ router.post('/dangky', (req, res) => {
                 res.status(200).json({ "thông_báo": "Đã đăng ký người dùng thành công" });
             }
         });
+    });
+});
+
+// Route để lấy hết dữ liệu từ bảng người dùng
+router.get('/listtaikhoan', (req, res) => {
+    // Truy vấn để lấy hết dữ liệu từ bảng người dùng
+    const query = `SELECT * FROM nguoidung`;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error("Lỗi khi truy vấn dữ liệu từ bảng người dùng:", err);
+            res.status(500).json({ "thông_báo": "Đã xảy ra lỗi khi lấy dữ liệu người dùng" });
+        } else {
+            console.log("Dữ liệu người dùng đã được truy vấn thành công");
+            res.status(200).json(results);
+        }
     });
 });
 

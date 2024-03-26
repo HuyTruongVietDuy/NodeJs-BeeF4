@@ -12,7 +12,7 @@ router.use('/uploads', express.static('uploads'));
 
 router.get('/list', (req, res) => {
     // Tạo câu lệnh SQL để lấy danh sách danh mục từ cơ sở dữ liệu
-    const sql = `SELECT id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, time_add, time_update 
+    const sql = `SELECT id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, time_add, time_update 
     FROM DanhMuc 
     ORDER BY time_add DESC; -- Sắp xếp theo thời gian thêm mới nhất
     `;
@@ -33,7 +33,7 @@ router.get('/list', (req, res) => {
 // Sử dụng middleware upload.single() để xử lý tệp hình ảnh gửi lên
 router.post('/them', multer.single('hinhanh'), (req, res) => {
     // Lấy thông tin từ request
-    const { ten_danhmuc, id_danhmuc_cha } = req.body;
+    const { ten_danhmuc, id_danhmuc_cha, url_category } = req.body;
     const hinhanh = req.file ? req.file.filename : null;
 
     // Kiểm tra các trường bắt buộc
@@ -56,11 +56,11 @@ router.post('/them', multer.single('hinhanh'), (req, res) => {
         let sql;
         let values;
         if (id_danhmuc_cha) {
-            sql = `INSERT INTO DanhMuc (ten_danhmuc, id_danhmuc_cha, hinhanh) VALUES (?, ?, ?)`;
-            values = [ten_danhmuc, id_danhmuc_cha, hinhanh];
+            sql = `INSERT INTO DanhMuc (ten_danhmuc, id_danhmuc_cha, hinhanh, url_category) VALUES (?, ?, ?, ?)`;
+            values = [ten_danhmuc, id_danhmuc_cha, hinhanh, url_category];
         } else {
-            sql = `INSERT INTO DanhMuc (ten_danhmuc, hinhanh) VALUES (?, ?)`;
-            values = [ten_danhmuc, hinhanh];
+            sql = `INSERT INTO DanhMuc (ten_danhmuc, hinhanh, url_category) VALUES (?, ?, ?)`;
+            values = [ten_danhmuc, hinhanh, url_category];
         }
 
         // Thực thi câu lệnh SQL để thêm mới danh mục
@@ -74,6 +74,7 @@ router.post('/them', multer.single('hinhanh'), (req, res) => {
         });
     });
 });
+
 
 // Xóa danh mục và hình ảnh của danh mục đó
 router.delete('/xoa/:id', (req, res) => {
@@ -142,13 +143,13 @@ router.get('/get/:id', (req, res) => {
 
   router.put('/sua/:id', multer.single('hinhanh'), (req, res) => {
     const categoryId = req.params.id;
-    const { ten_danhmuc, id_danhmuc_cha, trang_thai } = req.body;
+    const { ten_danhmuc, id_danhmuc_cha, trang_thai, url_category } = req.body;
     const hinhanh = req.file ? req.file.filename : null;
     const timeUpdate = new Date().toISOString().slice(0, 19).replace('T', ' '); // Lấy thời gian hiện tại
 
     // Kiểm tra các trường bắt buộc
-    if (!ten_danhmuc || !trang_thai) {
-        return res.status(400).json({ success: false, message: "Tên danh mục và trạng thái là bắt buộc." });
+    if (!ten_danhmuc || !trang_thai || !url_category) {
+        return res.status(400).json({ success: false, message: "Tên danh mục, trạng thái và URL category là bắt buộc." });
     }
 
     // Tạo câu lệnh SQL để lấy thông tin của danh mục trước khi cập nhật
@@ -170,20 +171,20 @@ router.get('/get/:id', (req, res) => {
         if (hinhanh) {
             // Nếu người dùng cung cấp hình ảnh mới
             if (id_danhmuc_cha) {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, id_danhmuc_cha = ?, hinhanh = ?, trang_thai = ?, time_update = NOW() WHERE id_danhmuc = ?`;
-                values = [ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, categoryId];
+                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, id_danhmuc_cha = ?, hinhanh = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                values = [ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, categoryId];
             } else {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, hinhanh = ?, trang_thai = ?, time_update = NOW() WHERE id_danhmuc = ?`;
-                values = [ten_danhmuc, hinhanh, trang_thai, categoryId];
+                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, hinhanh = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                values = [ten_danhmuc, hinhanh, trang_thai, url_category, categoryId];
             }
         } else {
             // Nếu người dùng không cung cấp hình ảnh mới
             if (id_danhmuc_cha) {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, id_danhmuc_cha = ?, trang_thai = ?, time_update = NOW() WHERE id_danhmuc = ?`;
-                values = [ten_danhmuc, id_danhmuc_cha, trang_thai, categoryId];
+                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, id_danhmuc_cha = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                values = [ten_danhmuc, id_danhmuc_cha, trang_thai, url_category, categoryId];
             } else {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, trang_thai = ?, time_update = NOW() WHERE id_danhmuc = ?`;
-                values = [ten_danhmuc, trang_thai, categoryId];
+                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                values = [ten_danhmuc, trang_thai, url_category, categoryId];
             }
         }
 
@@ -209,6 +210,7 @@ router.get('/get/:id', (req, res) => {
         });
     });
 });
+
 
 
 

@@ -63,9 +63,7 @@ router.post("/create_payment_url", function (req, res, next) {
 
 router.get("/vnpay_return", async function (req, res, next) {
   try {
-
     let vnp_Params = req.query;
-
     let secureHash = vnp_Params["vnp_SecureHash"];
 
     // Xóa các tham số liên quan đến mã bảo mật khỏi vnp_Params để tính toán lại mã bảo mật
@@ -87,11 +85,11 @@ router.get("/vnpay_return", async function (req, res, next) {
 
     if (secureHash === signed) {
       const orderId = req.query.vnp_TxnRef;
-      const sql = "UPDATE `donhang` SET stt_pay = ? WHERE id_donhang = ?";
-      const result = await db.queryPromise(sql, [2, orderId.toString()]);
+      const sqlUpdateDonHang = "UPDATE `donhang` SET stt_pay = ?, ngay_thanh_toan = CURRENT_TIMESTAMP WHERE id_donhang = ?";
+      const resultUpdateDonHang = await db.queryPromise(sqlUpdateDonHang, [2, orderId.toString()]);
       
-      console.log("Number of records updated: " + result.affectedRows);
-      
+      console.log("Number of records updated in DonHang table: " + resultUpdateDonHang.affectedRows);
+
       res.render("success", { code: vnp_Params["vnp_ResponseCode"] });
     } else {
       res.render("success", { code: "97" });
