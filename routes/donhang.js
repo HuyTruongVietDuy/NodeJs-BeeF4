@@ -67,7 +67,7 @@ router.get('/listchitietdonhang/:id_donhang', (req, res) => {
     const id_donhang = req.params.id_donhang;
 
     // Truy vấn dữ liệu chi tiết đơn hàng dựa trên id_donhang, kết hợp với bảng mausanpham để lấy ten_mau và hinh_anh_1,
-    // cùng với bảng sizesanpham để lấy ten_size
+    // cùng với bảng sizesanpham để lấy ten_size (nếu có)
     const sql = `
         SELECT 
             dhct.*, 
@@ -92,6 +92,34 @@ router.get('/listchitietdonhang/:id_donhang', (req, res) => {
 });
 
 
+router.put('/update-tinh-trang/:id_donhang', (req, res) => {
+    const id_donhang = req.params.id_donhang;
+    const newTinhTrang = req.body.tinh_trang; // Trạng thái mới được gửi từ client
+
+    // Tạo câu lệnh SQL để cập nhật trạng thái cho bảng donhang
+    const sql = `
+        UPDATE donhang
+        SET 
+            tinh_trang = ?
+        WHERE 
+            id_donhang = ?`;
+
+    // Thực hiện truy vấn cập nhật
+    db.query(sql, [newTinhTrang, id_donhang], function (err, result) {
+        if (err) {
+            res.status(500).json({"message": "Lỗi khi cập nhật trạng thái đơn hàng", "error": err});
+        } else {
+            // Kiểm tra xem có bao nhiêu dòng đã được cập nhật
+            if (result.affectedRows > 0) {
+                res.status(200).json({"message": "Đã cập nhật trạng thái đơn hàng thành công"});
+            } else {
+                res.status(404).json({"message": "Không tìm thấy đơn hàng"});
+            }
+        }
+    });
+});
+
+
 
 router.get('/:id_donhang', (req, res) => {
     const id_donhang = req.params.id_donhang;
@@ -110,5 +138,22 @@ router.get('/:id_donhang', (req, res) => {
         }
     });
 });
+
+router.get('/', (req, res) => {
+    // Truy vấn dữ liệu từ bảng "donhang"
+    const sql = `SELECT * FROM donhang`;
+    db.query(sql, function (err, result) {
+        if (err) {
+            res.status(500).json({"message": "Lỗi khi truy vấn thông tin đơn hàng", "error": err});
+        } else {
+            if (result.length === 0) {
+                res.status(404).json({"message": "Không có đơn hàng nào"});
+            } else {
+                res.status(200).json(result);
+            }
+        }
+    });
+});
+
 
 module.exports = router;
