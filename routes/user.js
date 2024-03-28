@@ -6,6 +6,7 @@ const db = require("../models/database");
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const PRIVATE_KEY = process.env.PRIVATE_KEY || fs.readFileSync('private-key.txt');
+var nodemailer = require('nodemailer');
 
 
 router.post('/login', (req, res) => {
@@ -69,6 +70,110 @@ router.post('/login', (req, res) => {
             res.status(200).json({ token: jwtBearerToken, expiresIn: 120, userInfo: userInfo });
         });
     });
+});
+
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Retrieve user information from the database based on the email
+        const query = `SELECT * FROM nguoidung WHERE email = ?`;
+        const results = await new Promise((resolve, reject) => {
+            db.query(query, [email], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        if (results.length === 0) {
+            // Email not found in the database
+            return res.status(404).json({ "message": "Địa chỉ email không tồn tại" });
+        }
+
+        // Email found in the database
+        const user = results[0];
+
+        // Create JWT token
+        const token = jwt.sign({ id_user: user.id_user }, 'your_secret_key', { expiresIn: '1h' });
+
+        // Send email
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'quanghuyvoicontre@gmail.com',
+                pass: 'jxur wbdr oboc dcrb'
+            }
+        });
+
+        // Construct the link to reset password
+        const resetLink = `http://localhost:3000/taomatkhaumoi/${user.id_user}?token=${token}`;
+
+        const mailOptions = {
+            from: 'SQBE <sqbe@gmail.com>',
+            to: user.email,
+            subject: 'Đặt lại mật khẩu',
+            html: `
+                <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+                    <h2 style="color: #007bff;">Xin chào,</h2>
+                    <p>Bạn nhận được email này vì bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.</p>
+                    <p>Vui lòng nhấp vào liên kết dưới đây để đặt lại mật khẩu:</p>
+                    <p style="text-align: center; margin-top: 20px;">
+                        <a href="${resetLink}" style="display: inline-block; background-color: #007bff; color: #fff; text-decoration: none; padding: 10px 20px; border-radius: 5px;">Đặt lại mật khẩu</a>
+                    </p>
+                    <p>Nếu bạn không yêu cầu thay đổi mật khẩu, vui lòng bỏ qua email này.</p>
+                    <p>Trân trọng,</p>
+                    <p><strong>Đội ngũ hỗ trợ của chúng tôi</strong></p>
+                </div>
+            `
+        };
+        
+        
+
+        await transporter.sendMail(mailOptions);
+        
+        console.log('Email sent successfully');
+        return res.status(200).json({ "message": "Email sent successfully" });
+
+    } catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({ "message": "Internal server error" });
+    }
+});
+
+
+router.post('/reset-password/:id_user', async (req, res) => {
+    const { id_user } = req.params;
+    const { newPassword } = req.body;
+
+    try {
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10); // Số lần băm là 10, có thể thay đổi tùy ý
+
+        // Update user's password in the database
+        const updateQuery = `UPDATE nguoidung SET matkhau = ? WHERE id_user = ?`;
+        await new Promise((resolve, reject) => {
+            db.query(updateQuery, [hashedPassword, id_user], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        // Create a new JWT token
+        const newToken = jwt.sign({ id_user }, 'your_secret_key', { expiresIn: '1h' });
+
+        // Password updated successfully, return the new token
+        return res.status(200).json({ "message": "Password updated successfully", "token": newToken });
+
+    } catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({ "message": "Internal server error" });
+    }
 });
 
 

@@ -6,7 +6,7 @@ var db = mysql.createConnection({
    host: 'localhost',
    user: 'root', 
    password: '', 
-   database: 'test'
+   database: 'beef4'
 }); 
 db.queryPromise = util.promisify(db.query);
 db.connect(() => console.log('Da ket noi database !'));
