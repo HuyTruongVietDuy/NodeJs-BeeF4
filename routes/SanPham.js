@@ -228,10 +228,10 @@ router.get('/sizes/:id_chitietsp', async (req, res) => {
 
 
 router.post('/them', multer.none(), async (req, res) => {
-    const { ten_sanpham, id_Danhmuc, chatlieu } = req.body; // Receive chatlieu from request body
+    const { ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product } = req.body; // Receive additional fields from request body
     try {
-        // Thêm sản phẩm vào cơ sở dữ liệu với tên sản phẩm, id_Danhmuc, và chatlieu được cung cấp
-        const result = await db.queryPromise('INSERT INTO sanpham (ten_sanpham, id_Danhmuc, chatlieu) VALUES (?, ?, ?)', [ten_sanpham, id_Danhmuc, chatlieu]);
+        // Thêm sản phẩm vào cơ sở dữ liệu với tên sản phẩm, id_Danhmuc, chatlieu, mota, kieu_dang, và url_product được cung cấp
+        const result = await db.queryPromise('INSERT INTO sanpham (ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product) VALUES (?, ?, ?, ?, ?, ?)', [ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product]);
         // Trả về thông báo thành công và thông tin sản phẩm mới được thêm vào
         res.status(201).json({ message: 'Thêm sản phẩm thành công', id_sanpham: result.insertId, ten_sanpham });
     } catch (error) {
@@ -254,14 +254,16 @@ router.delete('/xoa/:id', async (req, res) => {
 });
 
 router.put('/sua/:id', multer.none(), async (req, res) => {
-    const id_sanpham = req.params.id; // Nhận ID sản phẩm từ tham số của yêu cầu
-    const { ten_sanpham, id_Danhmuc, chatlieu, trang_thai } = req.body; // Nhận dữ liệu sản phẩm cần sửa từ phần thân của yêu cầu
-    const time_update = new Date().toISOString(); // Lấy thời gian hiện tại
+    const id_sanpham = req.params.id; // Receive product ID from request parameters
+    const { ten_sanpham, id_Danhmuc, chatlieu, trang_thai, mota, kieu_dang, url_product } = req.body; // Receive product data from request body
+    const time_update = new Date().toISOString(); // Get current time
 
     try {
-        // Thực hiện truy vấn để cập nhật thông tin sản phẩm trong cơ sở dữ liệu
-        await db.queryPromise('UPDATE sanpham SET ten_sanpham = ?, id_Danhmuc = ?, chatlieu = ?, trang_thai = ?, time_update = ? WHERE id_sanpham = ?', [ten_sanpham, id_Danhmuc, chatlieu, trang_thai, time_update, id_sanpham]);
-        // Trả về thông báo thành công
+        // Execute a query to update product information in the database
+        await db.queryPromise('UPDATE sanpham SET ten_sanpham = ?, id_Danhmuc = ?, chatlieu = ?, trang_thai = ?, mota = ?, kieu_dang = ?, url_product = ?, time_update = ? WHERE id_sanpham = ?', 
+        [ten_sanpham, id_Danhmuc, chatlieu, trang_thai, mota, kieu_dang, url_product, time_update, id_sanpham]);
+        
+        // Return success message
         res.status(200).json({ message: 'Sửa sản phẩm thành công' });
     } catch (error) {
         console.error('Lỗi khi sửa sản phẩm:', error);

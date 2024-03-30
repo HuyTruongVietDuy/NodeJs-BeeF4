@@ -93,6 +93,29 @@ router.get('/quanlykho/:id_chitietsp', (req, res) => {
     });
 });
 
+router.delete('/quanlykho/:id_kho', async (req, res) => {
+    const { id_kho } = req.params;
+
+    try {
+        // Perform the deletion in the database
+        const deleteQuery = `DELETE FROM quanlykho WHERE id_kho = ?`;
+        await new Promise((resolve, reject) => {
+            db.query(deleteQuery, [id_kho], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        // If deletion is successful, return success message
+        return res.status(200).json({ "message": "Deleted record based on id_kho successfully" });
+    } catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({ "message": "Internal server error" });
+    }
+});
 
 
 router.get('/totalquanlity/:id_sanpham', (req, res) => {

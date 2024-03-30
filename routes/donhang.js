@@ -5,7 +5,7 @@ const db = require("../models/database");
 
 const router = express.Router();
 const dbFilePath = path.join(__dirname, '..', 'models', 'db.json');
-
+const nodemailer = require('nodemailer');
 // Định nghĩa router để hiển thị dữ liệu từ db.json
 router.get('/data', (req, res) => {
     try {
@@ -48,12 +48,11 @@ router.post('/luuchitietdonhang', (req, res) => {
 });
 
 
-
 router.get('/listdh/:id_user', (req, res) => {
     const id_user = req.params.id_user;
 
-    // Truy vấn dữ liệu đơn hàng dựa trên id_user
-    const sql = `SELECT * FROM donhang WHERE id_user = ?`;
+    // Truy vấn dữ liệu đơn hàng dựa trên id_user và sắp xếp theo thời gian tạo mới nhất
+    const sql = `SELECT * FROM donhang WHERE id_user = ? ORDER BY ngay_dat DESC`;
     db.query(sql, id_user, function (err, result) {
         if (err) {
             res.status(500).json({"message": "Lỗi khi truy vấn dữ liệu đơn hàng", "error": err});
@@ -62,6 +61,7 @@ router.get('/listdh/:id_user', (req, res) => {
         }
     });
 });
+
 
 router.get('/listchitietdonhang/:id_donhang', (req, res) => {
     const id_donhang = req.params.id_donhang;
@@ -92,6 +92,66 @@ router.get('/listchitietdonhang/:id_donhang', (req, res) => {
 });
 
 
+const sendConfirmationEmail = async (email, orderId) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: 'quanghuyvoicontre@gmail.com',
+                pass: 'jxur wbdr oboc dcrb'
+            }
+        });
+
+        // Truy vấn cơ sở dữ liệu để lấy chi tiết đơn hàng từ bảng donhangchitiet
+        const getOrderDetailsQuery = `SELECT * FROM donhangchitiet WHERE id_donhang = ?`;
+        db.query(getOrderDetailsQuery, [orderId], async function (err, orderDetails) {
+            if (err) {
+                console.error('Error retrieving order details:', err);
+                return;
+            }
+
+            let productListHTML = ''; // Chuỗi HTML để hiển thị thông tin về sản phẩm trong đơn hàng
+
+            // Lặp qua từng sản phẩm trong đơn hàng và thêm thông tin vào chuỗi HTML
+            for (let i = 0; i < orderDetails.length; i++) {
+                const product = orderDetails[i];
+                productListHTML += `
+                    <p>Sản phẩm ${i + 1}:</p>
+                    <p>Tên sản phẩm: ${product.ten_sanpham}</p>
+                    <p>Số lượng: ${product.so_luong}</p>
+                    <p>Giá: ${product.gia_ban}</p>
+                    <hr>
+                `;
+            }
+
+            const mailOptions = {
+                from: 'SQBE <sqbe@gmail.com>',
+                to: email,
+                subject: 'Đơn hàng đã được xác nhận',
+                html: `
+                    <div style="font-family: Arial, sans-serif; color: #333; padding: 20px;">
+                        <h2 style="color: #007bff;">Xin chào,</h2>
+                        <p>Đơn hàng số PM${orderId} của bạn đã được xác nhận và đang được xử lý. Vui lòng chờ đợi để nhận được sản phẩm.</p>
+                        <h3>Thông tin đơn hàng:</h3>
+                        ${productListHTML}
+                        <p>Xin cảm ơn bạn đã mua hàng của chúng tôi!</p>
+                        <p>Trân trọng,</p>
+                        <p><strong>Đội ngũ hỗ trợ của chúng tôi</strong></p>
+                    </div>
+                `
+            };
+
+            await transporter.sendMail(mailOptions);
+
+            console.log('Confirmation email sent successfully');
+        });
+    } catch (error) {
+        console.error('Error sending confirmation email:', error);
+    }
+};
+
+
+// Router cập nhật tình trạng đơn hàng
 router.put('/update-tinh-trang/:id_donhang', (req, res) => {
     const id_donhang = req.params.id_donhang;
     const newTinhTrang = req.body.tinh_trang; // Trạng thái mới được gửi từ client
@@ -107,13 +167,36 @@ router.put('/update-tinh-trang/:id_donhang', (req, res) => {
     // Thực hiện truy vấn cập nhật
     db.query(sql, [newTinhTrang, id_donhang], function (err, result) {
         if (err) {
-            res.status(500).json({"message": "Lỗi khi cập nhật trạng thái đơn hàng", "error": err});
+            res.status(500).json({ "message": "Lỗi khi cập nhật trạng thái đơn hàng", "error": err });
         } else {
             // Kiểm tra xem có bao nhiêu dòng đã được cập nhật
             if (result.affectedRows > 0) {
-                res.status(200).json({"message": "Đã cập nhật trạng thái đơn hàng thành công"});
+                if (newTinhTrang === 2) {
+                    // Lấy thông tin đơn hàng từ cơ sở dữ liệu
+                    const getOrderInfoQuery = `SELECT * FROM donhang WHERE id_donhang = ?`;
+                    db.query(getOrderInfoQuery, [id_donhang], function (err, orderResult) {
+                        if (err) {
+                            console.error('Error retrieving order information:', err);
+                            return res.status(500).json({ "message": "Lỗi khi lấy thông tin đơn hàng" });
+                        }
+
+                        if (orderResult.length === 0) {
+                            return res.status(404).json({ "message": "Không tìm thấy đơn hàng" });
+                        }
+
+                        // Lấy địa chỉ email của người dùng từ đơn hàng
+                        const userEmail = orderResult[0].email;
+
+                        // Gửi email thông báo cho người dùng khi đơn hàng được xác nhận
+                        sendConfirmationEmail(userEmail, id_donhang);
+
+                        return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng thành công" });
+                    });
+                } else {
+                    return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng thành công" });
+                }
             } else {
-                res.status(404).json({"message": "Không tìm thấy đơn hàng"});
+                res.status(404).json({ "message": "Không tìm thấy đơn hàng" });
             }
         }
     });
@@ -140,8 +223,8 @@ router.get('/:id_donhang', (req, res) => {
 });
 
 router.get('/', (req, res) => {
-    // Truy vấn dữ liệu từ bảng "donhang"
-    const sql = `SELECT * FROM donhang`;
+    // Truy vấn dữ liệu từ bảng "donhang", sắp xếp theo thời gian tạo đơn hàng giảm dần
+    const sql = `SELECT * FROM donhang ORDER BY ngay_dat DESC`;
     db.query(sql, function (err, result) {
         if (err) {
             res.status(500).json({"message": "Lỗi khi truy vấn thông tin đơn hàng", "error": err});
@@ -154,6 +237,7 @@ router.get('/', (req, res) => {
         }
     });
 });
+
 
 
 module.exports = router;
