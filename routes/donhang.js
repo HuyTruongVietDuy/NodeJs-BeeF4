@@ -26,14 +26,31 @@ router.get('/data', (req, res) => {
 router.post('/luudonhang', (req, res) => {
     let data = req.body;
     let sql = `INSERT INTO donhang SET ?`;
-    db.query(sql, data, function (err, data) {
-        if(err) res.json({"id_donhang":-1,"thông báo":"lỗi không lưu được đơn hàng", err})
-        else{
-            id_donhang = data.insertId
-            res.json({"id_donhang": id_donhang,"thông báo":"đã lưu đơn hàng"});
+    db.query(sql, data, function (err, result) {
+        if (err) {
+            res.json({"id_donhang": -1, "thông báo": "lỗi không lưu được đơn hàng", "error": err});
+        } else {
+            const id_donhang = result.insertId;
+            res.json({"id_donhang": id_donhang, "thông báo": "đã lưu đơn hàng"});
+            // Kiểm tra xem có cột id_giamgia trong dữ liệu đầu vào không
+            if ('id_giamgia' in data && data.id_giamgia !== null) {
+                // Nếu có, tiến hành cập nhật trạng thái của mã giảm giá trong bảng giamgia
+                const sqlUpdate = `UPDATE giamgia SET tinh_trang = 2, trang_thai = 2 WHERE id_giamgia = ?`;
+                db.query(sqlUpdate, [data.id_giamgia], function (errUpdate, resultUpdate) {
+                    if (errUpdate) {
+                        console.error("Lỗi khi cập nhật trạng thái mã giảm giá:", errUpdate);
+                        // Xử lý lỗi nếu cần
+                    } else {
+                        console.log("Đã cập nhật trạng thái mã giảm giá thành công");
+                        // Xử lý khi cập nhật thành công (nếu cần)
+                    }
+                });
+            }
         }
     });
 });
+
+
 
 router.post('/luuchitietdonhang', (req, res) => {
     let data = req.body; // Dữ liệu chi tiết đơn hàng từ request body
@@ -203,12 +220,21 @@ router.put('/update-tinh-trang/:id_donhang', (req, res) => {
 });
 
 
-
 router.get('/:id_donhang', (req, res) => {
     const id_donhang = req.params.id_donhang;
 
-    // Truy vấn dữ liệu đơn hàng dựa trên id_donhang
-    const sql = `SELECT * FROM donhang WHERE id_donhang = ?`;
+    // Truy vấn dữ liệu đơn hàng dựa trên id_donhang, kết hợp với bảng giamgia để lấy phan_tram
+    const sql = `
+        SELECT 
+            donhang.*, 
+            giamgia.phan_tram 
+        FROM 
+            donhang 
+        LEFT JOIN 
+            giamgia ON donhang.id_giamgia = giamgia.id_giamgia
+        WHERE 
+            donhang.id_donhang = ?`;
+
     db.query(sql, id_donhang, function (err, result) {
         if (err) {
             res.status(500).json({"message": "Lỗi khi truy vấn thông tin đơn hàng", "error": err});
