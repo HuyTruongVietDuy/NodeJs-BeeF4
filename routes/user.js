@@ -225,4 +225,76 @@ router.get('/listtaikhoan', (req, res) => {
     });
 });
 
+
+router.post('/addfavorite/:id_sanpham/:id_user', async (req, res) => {
+    try {
+        const { id_sanpham, id_user } = req.params; // Lấy id_sanpham và id_user từ params
+
+        // Kiểm tra xem id_sanpham và id_user có tồn tại không
+        if (!id_sanpham || !id_user) {
+            return res.status(400).json({ error: 'Vui lòng cung cấp id_sanpham và id_user' });
+        }
+
+        // Thêm sản phẩm yêu thích vào cơ sở dữ liệu
+        await db.query('INSERT INTO sanphamyeuthich (id_sanpham, id_user) VALUES (?, ?)', [id_sanpham, id_user]);
+        
+        res.json({ message: 'Sản phẩm đã được thêm vào danh sách yêu thích' });
+    } catch (error) {
+        console.error('Error adding favorite product:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+router.delete('/removefavorite/:id_sanpham/:id_user', async (req, res) => {
+    try {
+        const { id_sanpham, id_user } = req.params; // Lấy id_sanpham và id_user từ params
+
+        // Kiểm tra xem id_sanpham và id_user có tồn tại không
+        if (!id_sanpham || !id_user) {
+            return res.status(400).json({ error: 'Vui lòng cung cấp id_sanpham và id_user' });
+        }
+
+        // Xóa sản phẩm yêu thích khỏi cơ sở dữ liệu
+        await db.query('DELETE FROM sanphamyeuthich WHERE id_sanpham = ? AND id_user = ?', [id_sanpham, id_user]);
+
+        res.json({ message: 'Sản phẩm đã được xóa khỏi danh sách yêu thích' });
+    } catch (error) {
+        console.error('Error removing favorite product:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+router.get('/checkfavorite/:id_sanpham/:id_user', (req, res) => {
+    try {
+        const { id_sanpham, id_user } = req.params; // Lấy id_sanpham và id_user từ params
+
+        // Kiểm tra xem id_sanpham và id_user có tồn tại không
+        if (!id_sanpham || !id_user) {
+            return res.status(400).json({ error: 'Vui lòng cung cấp id_sanpham và id_user' });
+        }
+
+        // Truy vấn cơ sở dữ liệu để lấy thông tin sản phẩm yêu thích
+        db.query('SELECT * FROM sanphamyeuthich WHERE id_sanpham = ? AND id_user = ?', [id_sanpham, id_user], (error, results, fields) => {
+            if (error) {
+                console.error('Error fetching favorite product:', error);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+            // Kiểm tra xem có sản phẩm yêu thích nào không
+            if (results.length === 0) {
+                return res.status(404).json({ message: 'Không tìm thấy sản phẩm yêu thích' });
+            }
+            // Trả về thông tin sản phẩm yêu thích nếu có
+            res.json(results[0]);
+        });
+    } catch (error) {
+        console.error('Error fetching favorite product:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+
+
+
 module.exports = router;

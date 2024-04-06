@@ -38,7 +38,9 @@ router.get('/listnew', async (req, res) => {
             MauSanPham.hinh_anh_4,
             MauSanPham.hinh_anh_5,
             MauSanPham.hinh_anh_6,
-            SUM(QuanLyKho.so_luong) AS tong_so_luong
+            SUM(QuanLyKho.so_luong) AS tong_so_luong,
+            sanphamyeuthich.id,
+            sanphamyeuthich.id_user
         FROM SanPham
         LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
         LEFT JOIN (
@@ -49,6 +51,7 @@ router.get('/listnew', async (req, res) => {
         ) AS ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
         LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
         LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+        LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
         GROUP BY SanPham.id_sanpham
         ORDER BY SanPham.time_add DESC
         `;
@@ -59,6 +62,7 @@ router.get('/listnew', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while processing the request.' });
     }
 });
+
 
 router.get('/listall', async (req, res) => {
     try {
@@ -77,12 +81,15 @@ router.get('/listall', async (req, res) => {
             MauSanPham.hinh_anh_4,
             MauSanPham.hinh_anh_5,
             MauSanPham.hinh_anh_6,
-            SUM(QuanLyKho.so_luong) AS tong_so_luong
+            SUM(QuanLyKho.so_luong) AS tong_so_luong,
+            sanphamyeuthich.id,
+            sanphamyeuthich.id_user
         FROM SanPham
         LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
         LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
         LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
         LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+        LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
         GROUP BY SanPham.id_sanpham
         ORDER BY SanPham.time_add DESC
         `;
@@ -94,37 +101,55 @@ router.get('/listall', async (req, res) => {
     }
 });
 
-router.get('/listdanhmucha/:url_category', async (req, res) => {
+router.get('/:url_category', async (req, res) => {
     try {
         const url_category = req.params.url_category;
         
+        // Truy vấn cơ sở dữ liệu để lấy id_danhmuc tương ứng với url_category
+        const queryGetIdDanhMuc = `SELECT id_danhmuc FROM DanhMuc WHERE url_category = ?`;
+        const result = await db.queryPromise(queryGetIdDanhMuc, [url_category]);
+
+        let id_danhmuc = null;
+
+        if (result.length === 0) {
+            // Nếu không tìm thấy url_category trong cơ sở dữ liệu, trả về lỗi 404
+            return res.status(404).json({ message: 'Không tìm thấy danh mục.' });
+        } else {
+            id_danhmuc = result[0].id_danhmuc;
+        }
+
+        // Sửa câu truy vấn SQL để lấy sản phẩm của id_danhmuc hoặc các danh mục con
         const query = `
-            SELECT 
-                SanPham.*, 
-                DanhMuc.id_danhmuc AS id_danhmuc, 
-                DanhMuc.ten_danhmuc AS ten_danhmuc, 
-                ChiTietSanPham.*, 
-                MauSanPham.id_mau, 
-                MauSanPham.ten_mau,
-                MauSanPham.Ma_mau,
-                MauSanPham.hinh_anh_1,
-                MauSanPham.hinh_anh_2,
-                MauSanPham.hinh_anh_3,
-                MauSanPham.hinh_anh_4,
-                MauSanPham.hinh_anh_5,
-                MauSanPham.hinh_anh_6,
-                SUM(QuanLyKho.so_luong) AS tong_so_luong
-            FROM SanPham
-            LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-            LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-            LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-            LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-            WHERE DanhMuc.id_danhmuc_cha = (SELECT id_danhmuc FROM DanhMuc WHERE url_category = ?)
-            GROUP BY SanPham.id_sanpham
-            ORDER BY SanPham.time_add DESC
+        SELECT 
+    SanPham.*, 
+    DanhMuc.id_danhmuc AS id_danhmuc, 
+    DanhMuc.ten_danhmuc AS ten_danhmuc, 
+    ChiTietSanPham.*, 
+    MauSanPham.id_mau, 
+    MauSanPham.ten_mau,
+    MauSanPham.Ma_mau,
+    MauSanPham.hinh_anh_1,
+    MauSanPham.hinh_anh_2,
+    MauSanPham.hinh_anh_3,
+    MauSanPham.hinh_anh_4,
+    MauSanPham.hinh_anh_5,
+    MauSanPham.hinh_anh_6,
+    SUM(QuanLyKho.so_luong) AS tong_so_luong,
+    sanphamyeuthich.id,
+    sanphamyeuthich.id_user
+FROM SanPham
+LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
+LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
+LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
+WHERE (DanhMuc.id_danhmuc = ? OR DanhMuc.id_danhmuc_cha = ?)
+GROUP BY SanPham.id_sanpham
+ORDER BY SanPham.time_add DESC
+
         `;
         
-        const sanPhamList = await db.queryPromise(query, [url_category]);
+        const sanPhamList = await db.queryPromise(query, [id_danhmuc, id_danhmuc]);
         res.status(200).json(sanPhamList);
     } catch (error) {
         console.error('Error fetching product list:', error);
@@ -132,58 +157,45 @@ router.get('/listdanhmucha/:url_category', async (req, res) => {
     }
 });
 
-router.get('/listdanhmuccon/:url_category_con', async (req, res) => {
+router.get('/listfavorites/:id_user', async (req, res) => {
+    const { id_user } = req.params;
     try {
-        const url_category = req.params.url_category_con;
-
         const query = `
-            SELECT 
-                id_danhmuc
-            FROM DanhMuc
-            WHERE url_category = ?
+        SELECT 
+            SanPham.*, 
+            DanhMuc.id_danhmuc AS id_danhmuc, 
+            DanhMuc.ten_danhmuc AS ten_danhmuc, 
+            ChiTietSanPham.*, 
+            MauSanPham.id_mau, 
+            MauSanPham.ten_mau,
+            MauSanPham.Ma_mau,
+            MauSanPham.hinh_anh_1,
+            MauSanPham.hinh_anh_2,
+            MauSanPham.hinh_anh_3,
+            MauSanPham.hinh_anh_4,
+            MauSanPham.hinh_anh_5,
+            MauSanPham.hinh_anh_6,
+            SUM(QuanLyKho.so_luong) AS tong_so_luong,
+            sanphamyeuthich.id,
+            sanphamyeuthich.id_user
+        FROM SanPham
+        LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+        LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
+        LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
+        LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
+        LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
+        WHERE sanphamyeuthich.id_user = ?
+        GROUP BY SanPham.id_sanpham
+        ORDER BY SanPham.time_add DESC
         `;
-
-        const danhMuc = await db.queryPromise(query, [url_category]);
-
-        if (danhMuc.length === 0) {
-            return res.status(404).json({ message: 'Không tìm thấy danh mục.' });
-        }
-
-        const id_danhmuc = danhMuc[0].id_danhmuc;
-
-        const productQuery = `
-            SELECT 
-                SanPham.*, 
-                DanhMuc.id_danhmuc AS id_danhmuc, 
-                DanhMuc.ten_danhmuc AS ten_danhmuc, 
-                ChiTietSanPham.*, 
-                MauSanPham.id_mau, 
-                MauSanPham.ten_mau,
-                MauSanPham.Ma_mau,
-                MauSanPham.hinh_anh_1,
-                MauSanPham.hinh_anh_2,
-                MauSanPham.hinh_anh_3,
-                MauSanPham.hinh_anh_4,
-                MauSanPham.hinh_anh_5,
-                MauSanPham.hinh_anh_6,
-                SUM(QuanLyKho.so_luong) AS tong_so_luong
-            FROM SanPham
-            LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-            LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-            LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-            LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-            WHERE SanPham.id_danhmuc = ?
-            GROUP BY SanPham.id_sanpham
-            ORDER BY SanPham.time_add DESC
-        `;
-
-        const sanPhamList = await db.queryPromise(productQuery, [id_danhmuc]);
-        res.status(200).json(sanPhamList);
+        const sanPhamFavorites = await db.queryPromise(query, [id_user]);
+        res.status(200).json(sanPhamFavorites);
     } catch (error) {
-        console.error('Lỗi khi lấy sản phẩm:', error);
-        res.status(500).json({ message: 'Đã xảy ra lỗi khi xử lý yêu cầu.' });
+        console.error('Error fetching favorite product list:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
     }
 });
+
 
 
 
@@ -207,6 +219,7 @@ router.get('/colors/:id_sanpham', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while processing the request.' });
     }
 });
+
 router.get('/sizes/:id_chitietsp', async (req, res) => {
     const { id_chitietsp } = req.params;
 
