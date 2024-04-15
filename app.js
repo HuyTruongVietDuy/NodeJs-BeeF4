@@ -14,6 +14,7 @@ var DonHang = require('./routes/donhang');
 var TaiKhoan = require('./routes/user');
 var payment = require('./routes/payment');
 var GiamGia = require('./routes/GiamGia');
+var BaiViet = require('./routes/baiviet');
 var app = express();
 
 // view engine setup
@@ -36,6 +37,7 @@ app.use('/khohang', KhoHang );
 app.use('/donhang', DonHang );
 app.use('/taikhoan', TaiKhoan );
 app.use('/voucher', GiamGia );
+app.use('/baiviet', BaiViet );
 
 app.use('/payment', payment);
 // catch 404 and forward to error handler

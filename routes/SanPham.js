@@ -4,7 +4,7 @@ const db = require("../models/database");
 const multer = require('../models/multerConfig');
 const fs = require('fs');
 const path = require('path');
-
+router.use('/uploads', express.static('uploads'));
 // Route to get the list of products with their corresponding category information
 router.get('/list', async (req, res) => {
     try {
@@ -208,7 +208,7 @@ router.get('/colors/:id_sanpham', async (req, res) => {
             FROM MauSanPham
             WHERE id_chitietsp IN (
                 SELECT id_chitietsp
-                FROM ChiTietSanPham
+                FROM chitietsanpham
                 WHERE id_sanpham = ?
             )
         `;
@@ -220,15 +220,41 @@ router.get('/colors/:id_sanpham', async (req, res) => {
     }
 });
 
+router.get('/colors-ct/:url_product', async (req, res) => {
+    const { url_product } = req.params;
+
+    try {
+        const query = `
+            SELECT *
+            FROM MauSanPham
+            WHERE id_chitietsp IN (
+                SELECT id_chitietsp
+                FROM ChiTietSanPham
+                WHERE id_sanpham IN (
+                    SELECT id_sanpham
+                    FROM SanPham
+                    WHERE url_product = ?
+                )
+            )
+        `;
+        const colors = await db.queryPromise(query, [url_product]);
+        res.status(200).json(colors);
+    } catch (error) {
+        console.error('Error fetching product colors:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    }
+});
+
+
 router.get('/sizes/:id_chitietsp', async (req, res) => {
     const { id_chitietsp } = req.params;
 
     try {
         const query = `
-            SELECT QLK.*, SS.ten_size
-            FROM quanlykho AS QLK
-            INNER JOIN SizeSanPham AS SS ON QLK.id_size = SS.id_size
-            WHERE QLK.id_chitietsp = ?
+            SELECT q.*, s.ten_size
+            FROM quanlykho q
+            INNER JOIN sizesanpham s ON q.id_size = s.id_size
+            WHERE q.id_chitietsp = ?;
         `;
         const sizes = await db.queryPromise(query, [id_chitietsp]);
         res.status(200).json(sizes);
@@ -237,6 +263,7 @@ router.get('/sizes/:id_chitietsp', async (req, res) => {
         res.status(500).json({ message: 'An error occurred while processing the request.' });
     }
 });
+
 
 
 
@@ -284,7 +311,27 @@ router.put('/sua/:id', multer.none(), async (req, res) => {
     }
 });
 
+// Route to update the status of an article
+router.put('/updatestatus/:id_sanpham', (req, res) => {
+    const { id_sanpham } = req.params;
+    const { trang_thai } = req.body;
 
+    // Check if the status value is valid (1 or 2)
+    if (trang_thai !== 1 && trang_thai !== 2) {
+        return res.status(400).json({ "thông_báo": "Trạng thái không hợp lệ" });
+    }
+
+    // Update the status of the article in the database
+    const query = `UPDATE sanpham SET trang_thai = ? WHERE id_sanpham = ?`;
+    db.query(query, [trang_thai, id_sanpham], (err, result) => {
+        if (err) {
+            console.error("Lỗi khi cập nhật trạng thái của bài viết:", err);
+            return res.status(500).json({ "thông_báo": "Đã xảy ra lỗi khi cập nhật trạng thái" });
+        }
+        console.log("Trạng thái của bài viết đã được cập nhật thành công");
+        res.status(200).json({ "thông_báo": "Trạng thái của bài viết đã được cập nhật" });
+    });
+});
 
 
 module.exports = router;

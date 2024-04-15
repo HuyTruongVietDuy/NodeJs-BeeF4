@@ -227,7 +227,8 @@ router.get('/:id_donhang', (req, res) => {
     const sql = `
         SELECT 
             donhang.*, 
-            giamgia.phan_tram 
+            giamgia.phan_tram ,
+            giamgia.ma_giamgia 
         FROM 
             donhang 
         LEFT JOIN 
@@ -264,6 +265,28 @@ router.get('/', (req, res) => {
     });
 });
 
+
+router.put('/update-address/:id_donhang', (req, res) => {
+    const id_donhang = req.params.id_donhang;
+    const { diachi, tinh, huyen, xa, sdt } = req.body; // Include sdt in the request body
+
+    // Update the address for the order with the specified id_donhang
+    const sql = `
+        UPDATE donhang
+        SET diachi = ?, tinh = ?, huyen = ?, xa = ?, sdt = ?
+        WHERE id_donhang = ?`;
+    db.query(sql, [diachi, tinh, huyen, xa, sdt, id_donhang], function (err, result) {
+        if (err) {
+            res.status(500).json({"message": "Lỗi khi cập nhật địa chỉ cho đơn hàng", "error": err});
+        } else {
+            if (result.affectedRows > 0) {
+                res.status(200).json({"message": "Đã cập nhật địa chỉ thành công"});
+            } else {
+                res.status(404).json({"message": "Không tìm thấy đơn hàng"});
+            }
+        }
+    });
+});
 
 
 module.exports = router;

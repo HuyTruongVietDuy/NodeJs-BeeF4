@@ -55,6 +55,58 @@ router.get('/list/:id_sanpham', (req, res) => {
     });
 });
 
+router.get('/listct/:url_product', (req, res) => {
+    const productUrl = req.params.url_product;
+
+    // SQL query to retrieve product details along with product name, sorted by id_mau
+    const sql = `
+    SELECT 
+    chitietsanpham.*, 
+    MauSanPham.ten_mau, 
+    MauSanPham.ma_mau, 
+    MauSanPham.id_mau,
+    MauSanPham.hinh_anh_1,
+    MauSanPham.hinh_anh_2,
+    MauSanPham.hinh_anh_3,
+    MauSanPham.hinh_anh_4,
+    MauSanPham.hinh_anh_5,
+    MauSanPham.hinh_anh_6,
+    sanpham.ten_sanpham ,
+    sanpham.chatlieu,
+    sanpham.mota,
+    sanpham.kieu_dang,
+    sanpham.mota,
+    sanphamyeuthich.id,
+    sanphamyeuthich.id_user
+FROM 
+    chitietsanpham 
+LEFT JOIN 
+    MauSanPham ON chitietsanpham.id_chitietsp = MauSanPham.id_chitietsp
+LEFT JOIN 
+    sanpham ON chitietsanpham.id_sanpham = sanpham.id_sanpham
+LEFT JOIN 
+    sanphamyeuthich ON sanpham.id_sanpham = sanphamyeuthich.id_sanpham
+WHERE 
+    sanpham.url_product = '${productUrl}'
+ORDER BY
+    MauSanPham.id_mau;
+`; // Sắp xếp kết quả theo id_mau
+
+    // Execute the SQL query
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi truy vấn chi tiết sản phẩm." });
+        }
+        
+        if (result.length === 0) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm với URL đã cung cấp." });
+        }
+
+        // Return all product details along with the product name
+        res.status(200).json({ success: true, productDetails: result });
+    });
+});
 
 
   

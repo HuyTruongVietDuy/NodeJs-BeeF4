@@ -29,6 +29,33 @@ router.get('/list', (req, res) => {
     });
 });
 
+router.get('/:url_Category', (req, res) => {
+    // Trích xuất url_Category từ tham số URL
+    const { url_Category } = req.params;
+
+    // Tạo câu lệnh SQL để lấy danh sách danh mục từ cơ sở dữ liệu dựa trên url_Category
+    const sql = `SELECT id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, time_add, time_update 
+    FROM DanhMuc AS dm1
+    WHERE dm1.id_danhmuc_cha IS NOT NULL 
+    AND EXISTS (
+        SELECT 1 
+        FROM DanhMuc AS dm2 
+        WHERE dm2.id_danhmuc_cha = dm1.id_danhmuc_cha 
+        AND dm2.id_danhmuc <> dm1.id_danhmuc
+    );
+    `;
+
+    // Thực thi câu lệnh SQL với url_Category nhận được từ URL params
+    db.query(sql, [url_Category], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ success: false, message: "Đã xảy ra lỗi khi truy vấn danh sách danh mục." });
+        }
+        
+        // Trả về danh sách danh mục
+        res.status(200).json({ success: true, danhMucList: result });
+    });
+});
 
 // Sử dụng middleware upload.single() để xử lý tệp hình ảnh gửi lên
 router.post('/them', multer.single('hinhanh'), (req, res) => {
@@ -108,7 +135,7 @@ router.delete('/xoa/:id', (req, res) => {
 
             // Nếu có hình ảnh của danh mục, xóa hình ảnh đó
             if (hinhAnh) {
-                const duongDanHinhAnh = path.join(__dirname, '../uploads/danhmuc', hinhAnh);
+                const duongDanHinhAnh = path.join(__dirname, '../uploads', hinhAnh);
                 fs.unlink(duongDanHinhAnh, (err) => {
                     if (err) {
                         console.error(err);
@@ -213,6 +240,25 @@ router.get('/get/:id', (req, res) => {
 
 
 
+router.put('/updatestatus/:id_danhmuc', (req, res) => {
+    const { id_danhmuc } = req.params;
+    const { trang_thai } = req.body;
 
+    // Check if the status value is valid (1 or 2)
+    if (trang_thai !== 1 && trang_thai !== 2) {
+        return res.status(400).json({ "thông_báo": "Trạng thái không hợp lệ" });
+    }
+
+    // Update the status of the article in the database
+    const query = `UPDATE danhmuc SET trang_thai = ? WHERE id_danhmuc = ?`;
+    db.query(query, [trang_thai, id_danhmuc], (err, result) => {
+        if (err) {
+            console.error("Lỗi khi cập nhật trạng thái của bài viết:", err);
+            return res.status(500).json({ "thông_báo": "Đã xảy ra lỗi khi cập nhật trạng thái" });
+        }
+        console.log("Trạng thái của bài viết đã được cập nhật thành công");
+        res.status(200).json({ "thông_báo": "Trạng thái của bài viết đã được cập nhật" });
+    });
+});
   
 module.exports = router;

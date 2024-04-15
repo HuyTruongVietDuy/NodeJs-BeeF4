@@ -90,7 +90,8 @@ router.get("/vnpay_return", async function (req, res, next) {
       
       console.log("Number of records updated in DonHang table: " + resultUpdateDonHang.affectedRows);
 
-      res.render("success", { code: vnp_Params["vnp_ResponseCode"] });
+      // Redirect đến trang thành công sau khi cập nhật thành công trong cơ sở dữ liệu
+      res.redirect("http://localhost:3000/thanhtoanthanhcong/" + orderId);
     } else {
       res.render("success", { code: "97" });
     }
@@ -99,6 +100,7 @@ router.get("/vnpay_return", async function (req, res, next) {
     res.status(500).send("Error handling VNPay return");
   }
 });
+
 
 function sortObject(obj) {
   let sorted = {};
