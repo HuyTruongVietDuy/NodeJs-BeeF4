@@ -21,6 +21,24 @@ router.get('/list', async (req, res) => {
     }
 });
 
+router.get('/list/:categoryId', async (req, res) => {
+    const categoryId = req.params.categoryId; // Lấy categoryId từ URL
+    try {
+        const query = `
+            SELECT SanPham.*, DanhMuc.id_danhmuc AS id_danhmuc, DanhMuc.ten_danhmuc AS ten_danhmuc
+            FROM SanPham
+            LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+            WHERE DanhMuc.id_danhmuc = ?
+        `;
+        const sanPhamList = await db.queryPromise(query, [categoryId]);
+        res.status(200).json(sanPhamList);
+    } catch (error) {
+        console.error('Error fetching product list by category:', error);
+        res.status(500).json({ message: 'An error occurred while processing the request.' });
+    }
+});
+
+
 router.get('/listnew', async (req, res) => {
     try {
         const query = `
