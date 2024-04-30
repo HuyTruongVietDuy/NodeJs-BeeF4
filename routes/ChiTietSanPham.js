@@ -15,29 +15,30 @@ router.get('/list/:id_sanpham', (req, res) => {
   
     // SQL query to retrieve product details along with product name, sorted by id_mau
     const sql = `
-        SELECT 
-            chitietsanpham.*, 
-            MauSanPham.ten_mau, 
-            MauSanPham.ma_mau, 
-            MauSanPham.id_mau,
-            MauSanPham.hinh_anh_1,
-            MauSanPham.hinh_anh_2,
-            MauSanPham.hinh_anh_3,
-            MauSanPham.hinh_anh_4,
-            MauSanPham.hinh_anh_5,
-            MauSanPham.hinh_anh_6,
-            sanpham.ten_sanpham ,
-            sanpham.chatlieu 
-        FROM 
-            chitietsanpham 
-        LEFT JOIN 
-            MauSanPham ON chitietsanpham.id_chitietsp = MauSanPham.id_chitietsp
-        LEFT JOIN 
-            sanpham ON chitietsanpham.id_sanpham = sanpham.id_sanpham
-        WHERE 
-            chitietsanpham.id_sanpham = ${productId}
-        ORDER BY
-            MauSanPham.id_mau`; // Sắp xếp kết quả theo id_mau
+       select 
+    chitietsanpham.*, 
+    mausanpham.ten_mau, 
+    mausanpham.ma_mau, 
+    mausanpham.id_mau,
+    mausanpham.hinh_anh_1,
+    mausanpham.hinh_anh_2,
+    mausanpham.hinh_anh_3,
+    mausanpham.hinh_anh_4,
+    mausanpham.hinh_anh_5,
+    mausanpham.hinh_anh_6,
+    sanpham.ten_sanpham,
+    sanpham.chatlieu
+from 
+    chitietsanpham 
+left join 
+    mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+left join 
+    sanpham on chitietsanpham.id_sanpham = sanpham.id_sanpham
+where 
+    chitietsanpham.id_sanpham = ${productId}
+order by
+    mausanpham.id_mau
+`; // Sắp xếp kết quả theo id_mau
   
     // Execute the SQL query
     db.query(sql, (err, result) => {
@@ -62,46 +63,47 @@ router.get('/list/:id_sanpham', (req, res) => {
         const sql = `
         SELECT 
         chitietsanpham.*, 
-        MauSanPham.ten_mau, 
-        MauSanPham.ma_mau, 
-        MauSanPham.id_mau,
-        MauSanPham.hinh_anh_1,
-        MauSanPham.hinh_anh_2,
-        MauSanPham.hinh_anh_3,
-        MauSanPham.hinh_anh_4,
-        MauSanPham.hinh_anh_5,
-        MauSanPham.hinh_anh_6,
-        sanpham.ten_sanpham ,
+        mausanpham.ten_mau, 
+        mausanpham.ma_mau, 
+        mausanpham.id_mau,
+        mausanpham.hinh_anh_1,
+        mausanpham.hinh_anh_2,
+        mausanpham.hinh_anh_3,
+        mausanpham.hinh_anh_4,
+        mausanpham.hinh_anh_5,
+        mausanpham.hinh_anh_6,
+        sanpham.ten_sanpham,
         sanpham.chatlieu,
         sanpham.mota,
         sanpham.kieu_dang,
-        sanpham.mota,
         sanphamyeuthich.id,
         sanphamyeuthich.id_user
     FROM 
         chitietsanpham 
     LEFT JOIN 
-        MauSanPham ON chitietsanpham.id_chitietsp = MauSanPham.id_chitietsp
+        mausanpham ON chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
     LEFT JOIN 
         sanpham ON chitietsanpham.id_sanpham = sanpham.id_sanpham
     LEFT JOIN 
         sanphamyeuthich ON sanpham.id_sanpham = sanphamyeuthich.id_sanpham
     WHERE 
         sanpham.url_product = '${productUrl}'
-    ORDER BY
-        MauSanPham.id_mau;
+    ORDER BY 
+        mausanpham.id_mau;
+    
     `; 
 
         // SQL query to increase luot_xem by 1
         const updateViewsSql = `
-            UPDATE chitietsanpham
-            SET luot_xem = luot_xem + 1
-            WHERE id_chitietsp IN (
-                SELECT id_chitietsp 
-                FROM chitietsanpham
-                LEFT JOIN sanpham ON chitietsanpham.id_sanpham = sanpham.id_sanpham
-                WHERE sanpham.url_product = '${productUrl}'
-            );
+        update chitietsanpham
+        set luot_xem = luot_xem + 1
+        where id_chitietsp in (
+            select id_chitietsp 
+            from chitietsanpham
+            left join sanpham on chitietsanpham.id_sanpham = sanpham.id_sanpham
+            where sanpham.url_product = '${productUrl}'
+        );
+        
         `;
 
         // Execute the SQL query to increase luot_xem
@@ -134,35 +136,36 @@ router.get('/list/:id_sanpham', (req, res) => {
     
         // SQL query to retrieve product details along with product name, sorted by id_mau
         const sql = `
-        SELECT 
-            chitietsanpham.*, 
-            MauSanPham.ten_mau, 
-            MauSanPham.ma_mau, 
-            MauSanPham.id_mau,
-            MauSanPham.hinh_anh_1,
-            MauSanPham.hinh_anh_2,
-            MauSanPham.hinh_anh_3,
-            MauSanPham.hinh_anh_4,
-            MauSanPham.hinh_anh_5,
-            MauSanPham.hinh_anh_6,
-            sanpham.ten_sanpham,
-            sanpham.chatlieu,
-            sanpham.mota,
-            sanpham.kieu_dang,
-            sanphamyeuthich.id,
-            sanphamyeuthich.id_user
-        FROM 
-            chitietsanpham 
-        LEFT JOIN 
-            MauSanPham ON chitietsanpham.id_chitietsp = MauSanPham.id_chitietsp
-        LEFT JOIN 
-            sanpham ON chitietsanpham.id_sanpham = sanpham.id_sanpham
-        LEFT JOIN 
-            sanphamyeuthich ON sanpham.id_sanpham = sanphamyeuthich.id_sanpham
-        WHERE 
-            sanpham.id_sanpham = '${productId}'
-        ORDER BY
-            MauSanPham.id_mau;
+        select 
+        chitietsanpham.*, 
+        mausanpham.ten_mau, 
+        mausanpham.ma_mau, 
+        mausanpham.id_mau,
+        mausanpham.hinh_anh_1,
+        mausanpham.hinh_anh_2,
+        mausanpham.hinh_anh_3,
+        mausanpham.hinh_anh_4,
+        mausanpham.hinh_anh_5,
+        mausanpham.hinh_anh_6,
+        sanpham.ten_sanpham,
+        sanpham.chatlieu,
+        sanpham.mota,
+        sanpham.kieu_dang,
+        sanphamyeuthich.id,
+        sanphamyeuthich.id_user
+    from 
+        chitietsanpham 
+    left join 
+        mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+    left join 
+        sanpham on chitietsanpham.id_sanpham = sanpham.id_sanpham
+    left join 
+        sanphamyeuthich on sanpham.id_sanpham = sanphamyeuthich.id_sanpham
+    where 
+        sanpham.id_sanpham = '${productId}'
+    order by 
+        mausanpham.id_mau;
+    
         `; 
     
         // Execute the SQL query to retrieve product details
@@ -187,8 +190,9 @@ router.post('/add', (req, res) => {
   
     // Tạo câu lệnh SQL để thêm chi tiết sản phẩm vào cơ sở dữ liệu
     const sql = `
-        INSERT INTO ChiTietSanPham (id_sanpham, gia, gia_khuyenmai) 
-        VALUES (?, ?, ?);
+    insert into chitietsanpham (id_sanpham, gia, gia_khuyenmai) 
+    values (?, ?, ?);
+    
     `;
     const values = [id_sanpham, gia, gia_khuyenmai]; // Giá trị truyền vào câu lệnh SQL
 
@@ -203,8 +207,9 @@ router.post('/add', (req, res) => {
 
         // Tiếp tục thêm dữ liệu vào bảng MauSanPham
         const mauSql = `
-            INSERT INTO MauSanPham (ten_mau, ma_mau, id_chitietsp) 
-            VALUES (?, ?, ?);
+        insert into mausanpham (ten_mau, ma_mau, id_chitietsp) 
+        values (?, ?, ?);
+        
         `;
         const mauValues = [ten_mau, ma_mau, id_chitietsp]; // Giá trị truyền vào câu lệnh SQL
 
@@ -227,10 +232,11 @@ router.put('/edit/:id_chitietsp', (req, res) => {
     const { gia, gia_khuyenmai, ten_mau, ma_mau } = req.body; // Lấy dữ liệu mới từ body request
 
     // Tạo câu lệnh SQL để sửa chi tiết sản phẩm trong cơ sở dữ liệu
-    const sql = `UPDATE chitietsanpham 
-                 LEFT JOIN MauSanPham ON chitietsanpham.id_chitietsp = MauSanPham.id_chitietsp
-                 SET chitietsanpham.gia = ?, chitietsanpham.gia_khuyenmai = ?, MauSanPham.ten_mau = ?, MauSanPham.ma_mau = ?
-                 WHERE chitietsanpham.id_chitietsp = ?`;
+    const sql = `update chitietsanpham 
+    left join mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+    set chitietsanpham.gia = ?, chitietsanpham.gia_khuyenmai = ?, mausanpham.ten_mau = ?, mausanpham.ma_mau = ?
+    where chitietsanpham.id_chitietsp = ?
+    `;
     const values = [gia, gia_khuyenmai, ten_mau, ma_mau, id_chitietsp]; // Giá trị truyền vào câu lệnh SQL
 
     // Thực thi câu lệnh SQL
@@ -254,7 +260,10 @@ router.delete('/delete/:id_chitietsp', (req, res) => {
     const { id_chitietsp } = req.params; // Lấy id của chi tiết sản phẩm cần xóa
 
     // Tạo câu lệnh SQL để lấy đường dẫn các tệp hình ảnh liên quan
-    const sqlSelectImages = `SELECT hinh_anh_1, hinh_anh_2, hinh_anh_3, hinh_anh_4, hinh_anh_5, hinh_anh_6 FROM MauSanPham WHERE id_chitietsp = ?`;
+    const sqlSelectImages = `select hinh_anh_1, hinh_anh_2, hinh_anh_3, hinh_anh_4, hinh_anh_5, hinh_anh_6 
+    from mausanpham 
+    where id_chitietsp = ?
+    `;
 
     db.query(sqlSelectImages, [id_chitietsp], (err, results) => {
         if (err) {
@@ -281,7 +290,8 @@ router.delete('/delete/:id_chitietsp', (req, res) => {
         });
 
         // Tiến hành xóa chi tiết sản phẩm từ cơ sở dữ liệu
-        const sqlDelete = `DELETE FROM chitietsanpham WHERE id_chitietsp = ?`;
+        const sqlDelete = `delete from chitietsanpham where id_chitietsp = ?
+        `;
         db.query(sqlDelete, [id_chitietsp], (err, result) => {
             if (err) {
                 console.error(err);
@@ -305,9 +315,10 @@ router.get('/listonect/:id_chitietsp', (req, res) => {
 
     // Tạo câu lệnh SQL để lấy thông tin màu sản phẩm từ bảng mausanpham dựa trên id_chitietsp
     const sql = `
-        SELECT * 
-        FROM MauSanPham
-        WHERE id_chitietsp = ${chitietId}`;
+    select * 
+    from mausanpham 
+    where id_chitietsp = ${chitietId}
+    `;
 
     // Thực thi câu lệnh SQL
     db.query(sql, (err, result) => {

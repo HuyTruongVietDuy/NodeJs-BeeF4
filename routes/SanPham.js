@@ -9,9 +9,10 @@ router.use('/uploads', express.static('uploads'));
 router.get('/list', async (req, res) => {
     try {
         const query = `
-            SELECT SanPham.*, DanhMuc.id_danhmuc AS id_danhmuc, DanhMuc.ten_danhmuc AS ten_danhmuc
-            FROM SanPham
-            LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
+        select sanpham.*, danhmuc.id_danhmuc as id_danhmuc, danhmuc.ten_danhmuc as ten_danhmuc
+        from sanpham
+        left join danhmuc on sanpham.id_danhmuc = danhmuc.id_danhmuc
+        
         `;
         const sanPhamList = await db.queryPromise(query);
         res.status(200).json(sanPhamList);
@@ -25,10 +26,11 @@ router.get('/list/:categoryId', async (req, res) => {
     const categoryId = req.params.categoryId; // Lấy categoryId từ URL
     try {
         const query = `
-            SELECT SanPham.*, DanhMuc.id_danhmuc AS id_danhmuc, DanhMuc.ten_danhmuc AS ten_danhmuc
-            FROM SanPham
-            LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-            WHERE DanhMuc.id_danhmuc = ?
+        select sanpham.*, danhmuc.id_danhmuc as id_danhmuc, danhmuc.ten_danhmuc as ten_danhmuc
+        from sanpham
+        left join danhmuc on sanpham.id_danhmuc = danhmuc.id_danhmuc
+        where danhmuc.id_danhmuc = ?
+        
         `;
         const sanPhamList = await db.queryPromise(query, [categoryId]);
         res.status(200).json(sanPhamList);
@@ -42,36 +44,34 @@ router.get('/list/:categoryId', async (req, res) => {
 router.get('/listnew', async (req, res) => {
     try {
         const query = `
-        SELECT 
-            SanPham.*, 
-            DanhMuc.id_danhmuc AS id_danhmuc, 
-            DanhMuc.ten_danhmuc AS ten_danhmuc, 
-            ChiTietSanPham.*, 
-            MauSanPham.id_mau, 
-            MauSanPham.ten_mau,
-            MauSanPham.Ma_mau,
-            MauSanPham.hinh_anh_1,
-            MauSanPham.hinh_anh_2,
-            MauSanPham.hinh_anh_3,
-            MauSanPham.hinh_anh_4,
-            MauSanPham.hinh_anh_5,
-            MauSanPham.hinh_anh_6,
-            SUM(QuanLyKho.so_luong) AS tong_so_luong,
-            sanphamyeuthich.id,
-            sanphamyeuthich.id_user
-        FROM SanPham
-        LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-        LEFT JOIN (
-            SELECT *
-            FROM ChiTietSanPham
-            GROUP BY id_sanpham
-            LIMIT 8
-        ) AS ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-        LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-        LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-        LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
-        GROUP BY SanPham.id_sanpham
-        ORDER BY SanPham.time_add DESC
+        select 
+        sanpham.*, 
+        danhmuc.id_danhmuc as id_danhmuc, 
+        danhmuc.ten_danhmuc as ten_danhmuc, 
+        chitietsanpham.*, 
+        mausanpham.id_mau, 
+        mausanpham.ten_mau,
+        mausanpham.ma_mau,
+        mausanpham.hinh_anh_1,
+        mausanpham.hinh_anh_2,
+        mausanpham.hinh_anh_3,
+        mausanpham.hinh_anh_4,
+        mausanpham.hinh_anh_5,
+        mausanpham.hinh_anh_6,
+        sum(quanlykho.so_luong) as tong_so_luong,
+        sanphamyeuthich.id,
+        sanphamyeuthich.id_user
+    from sanpham
+    left join danhmuc on sanpham.id_danhmuc = danhmuc.id_danhmuc
+    left join chitietsanpham on sanpham.id_sanpham = chitietsanpham.id_sanpham
+    left join mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+    left join quanlykho on chitietsanpham.id_chitietsp = quanlykho.id_chitietsp
+    left join sanphamyeuthich on sanpham.id_sanpham = sanphamyeuthich.id_sanpham
+    group by sanpham.id_sanpham
+    order by sanpham.time_add desc
+    limit 8
+    
+    
         `;
         const sanPhamList = await db.queryPromise(query);
         res.status(200).json(sanPhamList);
@@ -85,31 +85,32 @@ router.get('/listnew', async (req, res) => {
 router.get('/listall', async (req, res) => {
     try {
         const query = `
-        SELECT 
-            SanPham.*, 
-            DanhMuc.id_danhmuc AS id_danhmuc, 
-            DanhMuc.ten_danhmuc AS ten_danhmuc, 
-            ChiTietSanPham.*, 
-            MauSanPham.id_mau, 
-            MauSanPham.ten_mau,
-            MauSanPham.Ma_mau,
-            MauSanPham.hinh_anh_1,
-            MauSanPham.hinh_anh_2,
-            MauSanPham.hinh_anh_3,
-            MauSanPham.hinh_anh_4,
-            MauSanPham.hinh_anh_5,
-            MauSanPham.hinh_anh_6,
-            SUM(QuanLyKho.so_luong) AS tong_so_luong,
-            sanphamyeuthich.id,
-            sanphamyeuthich.id_user
-        FROM SanPham
-        LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-        LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-        LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-        LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-        LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
-        GROUP BY SanPham.id_sanpham
-        ORDER BY SanPham.time_add DESC
+        select 
+    sanpham.*, 
+    danhmuc.id_danhmuc as id_danhmuc, 
+    danhmuc.ten_danhmuc as ten_danhmuc, 
+    chitietsanpham.*, 
+    mausanpham.id_mau, 
+    mausanpham.ten_mau,
+    mausanpham.ma_mau,
+    mausanpham.hinh_anh_1,
+    mausanpham.hinh_anh_2,
+    mausanpham.hinh_anh_3,
+    mausanpham.hinh_anh_4,
+    mausanpham.hinh_anh_5,
+    mausanpham.hinh_anh_6,
+    sum(quanlykho.so_luong) as tong_so_luong,
+    sanphamyeuthich.id,
+    sanphamyeuthich.id_user
+from sanpham
+left join danhmuc on sanpham.id_danhmuc = danhmuc.id_danhmuc
+left join chitietsanpham on sanpham.id_sanpham = chitietsanpham.id_sanpham
+left join mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+left join quanlykho on chitietsanpham.id_chitietsp = quanlykho.id_chitietsp
+left join sanphamyeuthich on sanpham.id_sanpham = sanphamyeuthich.id_sanpham
+group by sanpham.id_sanpham
+order by sanpham.time_add desc
+
         `;
         const sanPhamList = await db.queryPromise(query);
         res.status(200).json(sanPhamList);
@@ -124,7 +125,7 @@ router.get('/:url_category', async (req, res) => {
         const url_category = req.params.url_category;
         
         // Truy vấn cơ sở dữ liệu để lấy id_danhmuc tương ứng với url_category
-        const queryGetIdDanhMuc = `SELECT id_danhmuc FROM DanhMuc WHERE url_category = ?`;
+        const queryGetIdDanhMuc = `SELECT id_danhmuc FROM danhmuc WHERE url_category = ?`;
         const result = await db.queryPromise(queryGetIdDanhMuc, [url_category]);
 
         let id_danhmuc = null;
@@ -138,32 +139,33 @@ router.get('/:url_category', async (req, res) => {
 
         // Sửa câu truy vấn SQL để lấy sản phẩm của id_danhmuc hoặc các danh mục con
         const query = `
-        SELECT 
-    SanPham.*, 
-    DanhMuc.id_danhmuc AS id_danhmuc, 
-    DanhMuc.ten_danhmuc AS ten_danhmuc, 
-    ChiTietSanPham.*, 
-    MauSanPham.id_mau, 
-    MauSanPham.ten_mau,
-    MauSanPham.Ma_mau,
-    MauSanPham.hinh_anh_1,
-    MauSanPham.hinh_anh_2,
-    MauSanPham.hinh_anh_3,
-    MauSanPham.hinh_anh_4,
-    MauSanPham.hinh_anh_5,
-    MauSanPham.hinh_anh_6,
-    SUM(QuanLyKho.so_luong) AS tong_so_luong,
-    sanphamyeuthich.id,
-    sanphamyeuthich.id_user
-FROM SanPham
-LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
-WHERE (DanhMuc.id_danhmuc = ? OR DanhMuc.id_danhmuc_cha = ?)
-GROUP BY SanPham.id_sanpham
-ORDER BY SanPham.time_add DESC
+        select 
+        sanpham.*, 
+        danhmuc.id_danhmuc as id_danhmuc, 
+        danhmuc.ten_danhmuc as ten_danhmuc, 
+        chitietsanpham.*, 
+        mausanpham.id_mau, 
+        mausanpham.ten_mau,
+        mausanpham.ma_mau,
+        mausanpham.hinh_anh_1,
+        mausanpham.hinh_anh_2,
+        mausanpham.hinh_anh_3,
+        mausanpham.hinh_anh_4,
+        mausanpham.hinh_anh_5,
+        mausanpham.hinh_anh_6,
+        sum(quanlykho.so_luong) as tong_so_luong,
+        sanphamyeuthich.id,
+        sanphamyeuthich.id_user
+    from sanpham
+    left join danhmuc on sanpham.id_danhmuc = danhmuc.id_danhmuc
+    left join chitietsanpham on sanpham.id_sanpham = chitietsanpham.id_sanpham
+    left join mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+    left join quanlykho on chitietsanpham.id_chitietsp = quanlykho.id_chitietsp
+    left join sanphamyeuthich on sanpham.id_sanpham = sanphamyeuthich.id_sanpham
+    where (danhmuc.id_danhmuc = ? or danhmuc.id_danhmuc_cha = ?)
+    group by sanpham.id_sanpham
+    order by sanpham.time_add desc
+    
 
         `;
         
@@ -179,32 +181,33 @@ router.get('/listfavorites/:id_user', async (req, res) => {
     const { id_user } = req.params;
     try {
         const query = `
-        SELECT 
-            SanPham.*, 
-            DanhMuc.id_danhmuc AS id_danhmuc, 
-            DanhMuc.ten_danhmuc AS ten_danhmuc, 
-            ChiTietSanPham.*, 
-            MauSanPham.id_mau, 
-            MauSanPham.ten_mau,
-            MauSanPham.Ma_mau,
-            MauSanPham.hinh_anh_1,
-            MauSanPham.hinh_anh_2,
-            MauSanPham.hinh_anh_3,
-            MauSanPham.hinh_anh_4,
-            MauSanPham.hinh_anh_5,
-            MauSanPham.hinh_anh_6,
-            SUM(QuanLyKho.so_luong) AS tong_so_luong,
-            sanphamyeuthich.id,
-            sanphamyeuthich.id_user
-        FROM SanPham
-        LEFT JOIN DanhMuc ON SanPham.id_danhmuc = DanhMuc.id_danhmuc
-        LEFT JOIN ChiTietSanPham ON SanPham.id_sanpham = ChiTietSanPham.id_sanpham
-        LEFT JOIN MauSanPham ON ChiTietSanPham.id_chitietsp = MauSanPham.id_chitietsp
-        LEFT JOIN QuanLyKho ON ChiTietSanPham.id_chitietsp = QuanLyKho.id_chitietsp
-        LEFT JOIN sanphamyeuthich ON SanPham.id_sanpham = sanphamyeuthich.id_sanpham
-        WHERE sanphamyeuthich.id_user = ?
-        GROUP BY SanPham.id_sanpham
-        ORDER BY SanPham.time_add DESC
+        select 
+        sanpham.*, 
+        danhmuc.id_danhmuc as id_danhmuc, 
+        danhmuc.ten_danhmuc as ten_danhmuc, 
+        chitietsanpham.*, 
+        mausanpham.id_mau, 
+        mausanpham.ten_mau,
+        mausanpham.ma_mau,
+        mausanpham.hinh_anh_1,
+        mausanpham.hinh_anh_2,
+        mausanpham.hinh_anh_3,
+        mausanpham.hinh_anh_4,
+        mausanpham.hinh_anh_5,
+        mausanpham.hinh_anh_6,
+        sum(quanlykho.so_luong) as tong_so_luong,
+        sanphamyeuthich.id,
+        sanphamyeuthich.id_user
+    from sanpham
+    left join danhmuc on sanpham.id_danhmuc = danhmuc.id_danhmuc
+    left join chitietsanpham on sanpham.id_sanpham = chitietsanpham.id_sanpham
+    left join mausanpham on chitietsanpham.id_chitietsp = mausanpham.id_chitietsp
+    left join quanlykho on chitietsanpham.id_chitietsp = quanlykho.id_chitietsp
+    left join sanphamyeuthich on sanpham.id_sanpham = sanphamyeuthich.id_sanpham
+    where sanphamyeuthich.id_user = ?
+    group by sanpham.id_sanpham
+    order by sanpham.time_add desc
+    
         `;
         const sanPhamFavorites = await db.queryPromise(query, [id_user]);
         res.status(200).json(sanPhamFavorites);
@@ -222,13 +225,14 @@ router.get('/colors/:id_sanpham', async (req, res) => {
 
     try {
         const query = `
-            SELECT *
-            FROM MauSanPham
-            WHERE id_chitietsp IN (
-                SELECT id_chitietsp
-                FROM chitietsanpham
-                WHERE id_sanpham = ?
-            )
+        select *
+        from mausanpham
+        where id_chitietsp in (
+            select id_chitietsp
+            from chitietsanpham
+            where id_sanpham = ?
+        )
+        
         `;
         const colors = await db.queryPromise(query, [id_sanpham]);
         res.status(200).json(colors);
@@ -243,17 +247,18 @@ router.get('/colors-ct/:url_product', async (req, res) => {
 
     try {
         const query = `
-            SELECT *
-            FROM MauSanPham
-            WHERE id_chitietsp IN (
-                SELECT id_chitietsp
-                FROM ChiTietSanPham
-                WHERE id_sanpham IN (
-                    SELECT id_sanpham
-                    FROM SanPham
-                    WHERE url_product = ?
-                )
+        select *
+        from mausanpham
+        where id_chitietsp in (
+            select id_chitietsp
+            from chitietsanpham
+            where id_sanpham in (
+                select id_sanpham
+                from sanpham
+                where url_product = ?
             )
+        )
+        
         `;
         const colors = await db.queryPromise(query, [url_product]);
         res.status(200).json(colors);
@@ -269,10 +274,11 @@ router.get('/sizes/:id_chitietsp', async (req, res) => {
 
     try {
         const query = `
-            SELECT q.*, s.ten_size
-            FROM quanlykho q
-            INNER JOIN sizesanpham s ON q.id_size = s.id_size
-            WHERE q.id_chitietsp = ?;
+        select q.*, s.ten_size
+        from quanlykho q
+        inner join sizesanpham s on q.id_size = s.id_size
+        where q.id_chitietsp = ?
+        
         `;
         const sizes = await db.queryPromise(query, [id_chitietsp]);
         res.status(200).json(sizes);
@@ -289,7 +295,9 @@ router.post('/them', multer.none(), async (req, res) => {
     const { ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product } = req.body; // Receive additional fields from request body
     try {
         // Thêm sản phẩm vào cơ sở dữ liệu với tên sản phẩm, id_Danhmuc, chatlieu, mota, kieu_dang, và url_product được cung cấp
-        const result = await db.queryPromise('INSERT INTO sanpham (ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product) VALUES (?, ?, ?, ?, ?, ?)', [ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product]);
+        const result = await db.queryPromise(`insert into sanpham (ten_sanpham, id_danhmuc, chatlieu, mota, kieu_dang, url_product) 
+        values (?, ?, ?, ?, ?, ?)
+        `, [ten_sanpham, id_Danhmuc, chatlieu, mota, kieu_dang, url_product]);
         // Trả về thông báo thành công và thông tin sản phẩm mới được thêm vào
         res.status(201).json({ message: 'Thêm sản phẩm thành công', id_sanpham: result.insertId, ten_sanpham });
     } catch (error) {
@@ -318,7 +326,10 @@ router.put('/sua/:id', multer.none(), async (req, res) => {
 
     try {
         // Execute a query to update product information in the database
-        await db.queryPromise('UPDATE sanpham SET ten_sanpham = ?, id_Danhmuc = ?, chatlieu = ?, trang_thai = ?, mota = ?, kieu_dang = ?, url_product = ?, time_update = ? WHERE id_sanpham = ?', 
+        await db.queryPromise(`update sanpham 
+        set ten_sanpham = ?, id_danhmuc = ?, chatlieu = ?, trang_thai = ?, mota = ?, kieu_dang = ?, url_product = ?, time_update = ? 
+        where id_sanpham = ?
+        `, 
         [ten_sanpham, id_Danhmuc, chatlieu, trang_thai, mota, kieu_dang, url_product, time_update, id_sanpham]);
         
         // Return success message

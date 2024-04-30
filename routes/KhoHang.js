@@ -34,7 +34,10 @@ router.post('/add-quantity/:id_chitietsp', (req, res) => {
     }
 
     // Kiểm tra xem sản phẩm đã tồn tại trong kho chưa
-    const checkExistingProductSQL = `SELECT * FROM QuanLyKho WHERE id_chitietsp = ? AND id_mau = ? AND id_size = ?`;
+    const checkExistingProductSQL = `select * 
+    from quanlykho 
+    where id_chitietsp = ? and id_mau = ? and id_size = ?
+    `;
     db.query(checkExistingProductSQL, [id_chitietsp, id_mau, id_size], (err, results) => {
         if (err) {
             console.error(err);
@@ -43,7 +46,10 @@ router.post('/add-quantity/:id_chitietsp', (req, res) => {
 
         if (results.length > 0) {
             // Nếu sản phẩm đã tồn tại trong kho, cập nhật số lượng
-            const updateQuantitySQL = `UPDATE QuanLyKho SET so_luong = so_luong + ? WHERE id_chitietsp = ? AND id_mau = ? AND id_size = ?`;
+            const updateQuantitySQL = `update quanlykho 
+            set so_luong = so_luong + ? 
+            where id_chitietsp = ? and id_mau = ? and id_size = ?
+            `;
             db.query(updateQuantitySQL, [so_luong, id_chitietsp, id_mau, id_size], (err, result) => {
                 if (err) {
                     console.error(err);
@@ -53,7 +59,9 @@ router.post('/add-quantity/:id_chitietsp', (req, res) => {
             });
         } else {
             // Nếu sản phẩm chưa tồn tại trong kho, thêm mới
-            const insertNewProductSQL = `INSERT INTO QuanLyKho (id_chitietsp, id_mau, id_size, so_luong) VALUES (?, ?, ?, ?)`;
+            const insertNewProductSQL = `insert into quanlykho (id_chitietsp, id_mau, id_size, so_luong) 
+            values (?, ?, ?, ?)
+            `;
             db.query(insertNewProductSQL, [id_chitietsp, id_mau, id_size, so_luong], (err, result) => {
                 if (err) {
                     console.error(err);
@@ -71,12 +79,13 @@ router.get('/quanlykho/:id_chitietsp', (req, res) => {
 
     // Tạo câu lệnh SQL để lấy thông tin quản lý kho, kích thước sản phẩm và màu sản phẩm dựa trên id_chitietsp, sắp xếp theo id_size
     const sql = `
-        SELECT Q.id_kho, Q.id_mau, Q.id_size, Q.so_luong, S.ten_size, M.ten_mau
-        FROM QuanLyKho AS Q
-        INNER JOIN SizeSanPham AS S ON Q.id_size = S.id_size
-        INNER JOIN MauSanPham AS M ON Q.id_mau = M.id_mau
-        WHERE Q.id_chitietsp = ?
-        ORDER BY Q.id_size`;
+    select q.id_kho, q.id_mau, q.id_size, q.so_luong, s.ten_size, m.ten_mau
+    from quanlykho as q
+    inner join sizesanpham as s on q.id_size = s.id_size
+    inner join mausanpham as m on q.id_mau = m.id_mau
+    where q.id_chitietsp = ?
+    order by q.id_size
+    `;
 
     // Thực thi câu lệnh SQL
     db.query(sql, [id_chitietsp], (err, result) => {
@@ -123,23 +132,24 @@ router.get('/totalquanlity/:id_sanpham', (req, res) => {
 
     // SQL query to retrieve total quantity by id_chitietsp, including ten_sanpham and ten_mau
     const sql = `
-        SELECT 
-            Q.id_chitietsp,
-            SUM(Q.so_luong) AS total_quantity,
-            S.ten_sanpham,
-            M.ten_mau
-        FROM 
-            QuanLyKho Q
-        JOIN 
-            ChiTietSanPham C ON Q.id_chitietsp = C.id_chitietsp
-        JOIN 
-            SanPham S ON C.id_sanpham = S.id_sanpham
-        JOIN 
-            MauSanPham M ON Q.id_mau = M.id_mau
-        WHERE 
-            C.id_sanpham = ?
-        GROUP BY 
-            Q.id_chitietsp`;
+    select 
+    q.id_chitietsp,
+    sum(q.so_luong) as total_quantity,
+    s.ten_sanpham,
+    m.ten_mau
+from 
+    quanlykho q
+join 
+    chitietsanpham c on q.id_chitietsp = c.id_chitietsp
+join 
+    sanpham s on c.id_sanpham = s.id_sanpham
+join 
+    mausanpham m on q.id_mau = m.id_mau
+where 
+    c.id_sanpham = ?
+group by 
+    q.id_chitietsp
+`;
 
     // Execute the SQL query
     db.query(sql, [id_sanpham], (err, results) => {

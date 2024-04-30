@@ -176,7 +176,68 @@ router.post('/reset-password/:id_user', async (req, res) => {
     }
 });
 
+router.post('/change-password/:id_user', async (req, res) => {
+    const { id_user } = req.params; // Lấy id_user từ tham số
+    const { oldPassword, newPassword, confirmNewPassword } = req.body; // Lấy dữ liệu từ body
 
+    if (!id_user) {
+        return res.status(400).json({ "message": "Missing user ID" });
+    }
+
+    if (!oldPassword) { // Kiểm tra nếu mật khẩu cũ bị trống
+        return res.status(400).json({ "message": "Old password is required" });
+    }
+
+    if (newPassword !== confirmNewPassword) {
+        return res.status(400).json({ "message": "New password and confirmation do not match" });
+    }
+
+    try {
+        // Lấy mật khẩu hiện tại từ cơ sở dữ liệu
+        const selectQuery = `SELECT matkhau FROM nguoidung WHERE id_user = ?`;
+        const currentPasswordData = await new Promise((resolve, reject) => {
+            db.query(selectQuery, [id_user], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else if (results.length === 0 || !results[0].matkhau) {
+                    reject(new Error("User not found or password is empty"));
+                } else {
+                    resolve(results[0]);
+                }
+            });
+        });
+
+        const currentHashedPassword = currentPasswordData.matkhau;
+
+        // So sánh mật khẩu cũ với mật khẩu hiện tại
+        const match = await bcrypt.compare(oldPassword, currentHashedPassword);
+
+        if (!match) {
+            return res.status(400).json({ "message": "Old password is incorrect" });
+        }
+
+        // Băm mật khẩu mới
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Cập nhật mật khẩu mới trong cơ sở dữ liệu
+        const updateQuery = `UPDATE nguoidung SET matkhau = ? WHERE id_user = ?`;
+        await new Promise((resolve, reject) => {
+            db.query(updateQuery, [hashedNewPassword, id_user], (err, results) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(results);
+                }
+            });
+        });
+
+        return res.status(200).json({ "message": "Password changed successfully" });
+
+    } catch (error) {
+        console.error("Error changing password:", error);
+        return res.status(500).json({ "message": "Internal server error" });
+    }
+});
 
 // Route để đăng ký người dùng
 router.post('/dangky', (req, res) => {
@@ -226,6 +287,117 @@ router.get('/listtaikhoan', (req, res) => {
 });
 
 
+
+
+
+
+
+// Route để cập nhật từng phần thông tin người dùng
+router.patch('/update-user/:id_user', (req, res) => {
+    const { id_user } = req.params; // Lấy id_user từ params
+    const { ho_ten, diachi, tinh, huyen, xa, sdt } = req.body; // Các trường cần cập nhật
+
+    if (!id_user) {
+        res.status(400).json({ "thông_báo": "Thiếu ID người dùng" });
+        return;
+    }
+
+    // Danh sách các trường cần cập nhật, chỉ thêm vào nếu có giá trị trong request body
+    const updateFields = [];
+    const updateValues = [];
+
+    if (ho_ten !== undefined) {
+        updateFields.push('ho_ten = ?');
+        updateValues.push(ho_ten);
+    }
+
+    if (diachi !== undefined) {
+        updateFields.push('diachi = ?');
+        updateValues.push(diachi);
+    }
+
+    if (tinh !== undefined) {
+        updateFields.push('tinh = ?');
+        updateValues.push(tinh);
+    }
+
+    if (huyen !== undefined) {
+        updateFields.push('huyen = ?');
+        updateValues.push(huyen);
+    }
+
+    if (xa !== undefined) {
+        updateFields.push('xa = ?');
+        updateValues.push(xa);
+    }
+
+    if (sdt !== undefined) {
+        updateFields.push('sdt = ?');
+        updateValues.push(sdt);
+    }
+
+    // Nếu không có trường nào cần cập nhật, trả lại lỗi
+    if (updateFields.length === 0) {
+        res.status(400).json({ "thông_báo": "Không có trường nào để cập nhật" });
+        return;
+    }
+
+    // Thêm id_user vào cuối mảng updateValues
+    updateValues.push(id_user);
+
+    const updateQuery = `
+        UPDATE nguoidung
+        SET ${updateFields.join(', ')}
+        WHERE id_user = ?
+    `;
+
+    // Thực hiện câu truy vấn
+    db.query(updateQuery, updateValues, (updateErr, updateResult) => {
+        if (updateErr) {
+            console.error("Lỗi khi cập nhật thông tin người dùng:", updateErr);
+            res.status(500).json({ "thông_báo": "Đã xảy ra lỗi khi cập nhật thông tin người dùng" });
+            return;
+        }
+
+        if (updateResult.affectedRows > 0) {
+            res.status(200).json({ "thông_báo": "Cập nhật thông tin người dùng thành công" });
+        } else {
+            res.status(404).json({ "thông_báo": "Không tìm thấy người dùng với ID này" });
+        }
+    });
+});
+
+
+router.get('/user/:id_user', (req, res) => {
+    const { id_user } = req.params; // Lấy id_user từ params
+
+    if (!id_user) {
+        res.status(400).json({ "thông_báo": "Thiếu ID người dùng" });
+        return;
+    }
+
+    const selectQuery = `
+        SELECT ho_ten, diachi, tinh, huyen, xa, sdt 
+        FROM nguoidung 
+        WHERE id_user = ?
+    `;
+
+    // Thực hiện truy vấn cơ sở dữ liệu
+    db.query(selectQuery, [id_user], (selectErr, selectResult) => {
+        if (selectErr) {
+            console.error("Lỗi khi truy vấn thông tin người dùng:", selectErr);
+            res.status(500).json({ "thông_báo": "Đã xảy ra lỗi khi truy vấn thông tin người dùng" });
+            return;
+        }
+
+        if (selectResult.length > 0) {
+            res.status(200).json(selectResult[0]); // Trả lại thông tin người dùng
+        } else {
+            res.status(404).json({ "thông_báo": "Không tìm thấy người dùng với ID này" });
+        }
+    });
+});
+
 router.post('/addfavorite/:id_sanpham/:id_user', async (req, res) => {
     try {
         const { id_sanpham, id_user } = req.params; // Lấy id_sanpham và id_user từ params
@@ -264,37 +436,4 @@ router.delete('/removefavorite/:id_sanpham/:id_user', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-
-router.get('/checkfavorite/:id_sanpham/:id_user', (req, res) => {
-    try {
-        const { id_sanpham, id_user } = req.params; // Lấy id_sanpham và id_user từ params
-
-        // Kiểm tra xem id_sanpham và id_user có tồn tại không
-        if (!id_sanpham || !id_user) {
-            return res.status(400).json({ error: 'Vui lòng cung cấp id_sanpham và id_user' });
-        }
-
-        // Truy vấn cơ sở dữ liệu để lấy thông tin sản phẩm yêu thích
-        db.query('SELECT * FROM sanphamyeuthich WHERE id_sanpham = ? AND id_user = ?', [id_sanpham, id_user], (error, results, fields) => {
-            if (error) {
-                console.error('Error fetching favorite product:', error);
-                return res.status(500).json({ error: 'Internal server error' });
-            }
-            // Kiểm tra xem có sản phẩm yêu thích nào không
-            if (results.length === 0) {
-                return res.status(404).json({ message: 'Không tìm thấy sản phẩm yêu thích' });
-            }
-            // Trả về thông tin sản phẩm yêu thích nếu có
-            res.json(results[0]);
-        });
-    } catch (error) {
-        console.error('Error fetching favorite product:', error);
-        res.status(500).json({ error: 'Internal server error' });
-    }
-});
-
-
-
-
 module.exports = router;

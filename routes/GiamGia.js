@@ -44,7 +44,7 @@ router.post('/add-voucher', (req, res) => {
     ngay_ket_thuc = ngay_ket_thuc || null; // Gán giá trị mặc định là null
 
     // Truy vấn để thêm mã giảm giá vào cơ sở dữ liệu
-    const sql = `INSERT INTO GiamGia (ma_giamgia, phan_tram, ngay_bat_dau, ngay_ket_thuc) 
+    const sql = `INSERT INTO giamgia (ma_giamgia, phan_tram, ngay_bat_dau, ngay_ket_thuc) 
                  VALUES (?, ?, ?, ?)`;
 
     db.query(sql, [ma_giamgia, phan_tram, ngay_bat_dau, ngay_ket_thuc], (err, result) => {

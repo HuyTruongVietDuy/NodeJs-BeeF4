@@ -167,54 +167,140 @@ const sendConfirmationEmail = async (email, orderId) => {
     }
 };
 
-
-// Router cập nhật tình trạng đơn hàng
 router.put('/update-tinh-trang/:id_donhang', (req, res) => {
     const id_donhang = req.params.id_donhang;
-    const newTinhTrang = req.body.tinh_trang; // Trạng thái mới được gửi từ client
+    const newTinhTrang = req.body.tinh_trang;
 
-    // Tạo câu lệnh SQL để cập nhật trạng thái cho bảng donhang
-    const sql = `
+    const updateOrderQuery = `
         UPDATE donhang
         SET 
             tinh_trang = ?
         WHERE 
             id_donhang = ?`;
 
-    // Thực hiện truy vấn cập nhật
-    db.query(sql, [newTinhTrang, id_donhang], function (err, result) {
+    db.query(updateOrderQuery, [newTinhTrang, id_donhang], (err, result) => {
         if (err) {
-            res.status(500).json({ "message": "Lỗi khi cập nhật trạng thái đơn hàng", "error": err });
-        } else {
-            // Kiểm tra xem có bao nhiêu dòng đã được cập nhật
-            if (result.affectedRows > 0) {
-                if (newTinhTrang === 2) {
-                    // Lấy thông tin đơn hàng từ cơ sở dữ liệu
-                    const getOrderInfoQuery = `SELECT * FROM donhang WHERE id_donhang = ?`;
-                    db.query(getOrderInfoQuery, [id_donhang], function (err, orderResult) {
-                        if (err) {
-                            console.error('Error retrieving order information:', err);
-                            return res.status(500).json({ "message": "Lỗi khi lấy thông tin đơn hàng" });
-                        }
+            return res.status(500).json({ "message": "Lỗi khi cập nhật trạng thái đơn hàng", "error": err });
+        }
 
-                        if (orderResult.length === 0) {
-                            return res.status(404).json({ "message": "Không tìm thấy đơn hàng" });
-                        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ "message": "Không tìm thấy đơn hàng" });
+        }
 
-                        // Lấy địa chỉ email của người dùng từ đơn hàng
-                        const userEmail = orderResult[0].email;
+        if (newTinhTrang === 2) {
+            const getOrderDetailsQuery = `
+                SELECT 
+                    id_chitietsp, 
+                    id_size, 
+                    so_luong 
+                FROM 
+                    DonHangChiTiet 
+                WHERE 
+                    id_donhang = ?`;
 
-                        // Gửi email thông báo cho người dùng khi đơn hàng được xác nhận
-                        sendConfirmationEmail(userEmail, id_donhang);
-
-                        return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng thành công" });
-                    });
-                } else {
-                    return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng thành công" });
+            db.query(getOrderDetailsQuery, [id_donhang], (err, orderDetails) => {
+                if (err) {
+                    console.error('Error retrieving order details:', err);
+                    return res.status(500).json({ "message": "Lỗi khi lấy chi tiết đơn hàng" });
                 }
-            } else {
-                res.status(404).json({ "message": "Không tìm thấy đơn hàng" });
-            }
+
+                const checkWarehousePromises = orderDetails.map((item) => {
+                    const checkWarehouseQuery = `
+                        SELECT 
+                            so_luong 
+                        FROM 
+                            QuanLyKho 
+                        WHERE 
+                            id_chitietsp = ? 
+                            AND id_size = ?`;
+
+                    return new Promise((resolve, reject) => {
+                        db.query(checkWarehouseQuery, [item.id_chitietsp, item.id_size], (err, result) => {
+                            if (err) {
+                                reject(err);
+                            } else {
+                                const warehouseStock = result[0].so_luong;
+                                if (warehouseStock < item.so_luong) {
+                                    reject(`Không đủ hàng trong kho cho sản phẩm ${item.id_chitietsp} và size ${item.id_size}`);
+                                } else {
+                                    resolve();
+                                }
+                            }
+                        });
+                    });
+                });
+
+                Promise.all(checkWarehousePromises)
+                    .then(() => {
+                        const getOrderInfoQuery = `
+                            SELECT email 
+                            FROM donhang 
+                            WHERE id_donhang = ?`;
+
+                        db.query(getOrderInfoQuery, [id_donhang], (err, orderResult) => {
+                            if (err) {
+                                return res.status(500).json({ "message": "Lỗi khi lấy thông tin đơn hàng", "error": err });
+                            }
+
+                            if (orderResult.length === 0) {
+                                return res.status(404).json({ "message": "Không tìm thấy đơn hàng" });
+
+
+                            }
+
+                            const userEmail = orderResult[0].email;
+                            sendConfirmationEmail(userEmail, id_donhang);
+
+                            return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng và gửi email thông báo" });
+                        });
+                    })
+                    .catch((err) => {
+                        console.error('Lỗi kiểm tra kho:', err);
+                        return res.status(500).json({ "message": "Không đủ hàng trong kho", "error": err });
+                    });
+            });
+        } else if (newTinhTrang === 3) {
+            // Xử lý cập nhật kho khi đơn hàng hoàn thành
+            const getOrderDetailsQuery = `
+                SELECT 
+                    id_chitietsp, 
+                    id_size, 
+                    so_luong 
+                FROM 
+                    DonHangChiTiet 
+                WHERE 
+                    id_donhang = ?`;
+
+            db.query(getOrderDetailsQuery, [id_donhang], (err, orderDetails) => {
+                if (err) {
+                    console.error('Lỗi lấy chi tiết đơn hàng:', err);
+                    return res.status(500).json({ "message": "Lỗi khi lấy chi tiết đơn hàng" });
+                }
+
+                const updateWarehousePromises = orderDetails.map((item) => {
+                    const updateWarehouseQuery = `
+                        UPDATE 
+                            QuanLyKho
+                        SET 
+                            so_luong = so_luong - ? 
+                        WHERE 
+                            id_chitietsp = ? 
+                            AND id_size = ?`;
+
+                    return db.query(updateWarehouseQuery, [item.so_luong, item.id_chitietsp, item.id_size]);
+                });
+
+                Promise.all(updateWarehousePromises)
+                    .then(() => {
+                        return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng và kho thành công" });
+                    })
+                    .catch((err) => {
+                        console.error('Lỗi cập nhật kho:', err);
+                        return res.status(500).json({ "message": "Lỗi khi cập nhật kho", "error": err });
+                    });
+            });
+        } else {
+            return res.status(200).json({ "message": "Đã cập nhật trạng thái đơn hàng thành công" });
         }
     });
 });

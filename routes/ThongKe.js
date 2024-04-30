@@ -34,9 +34,6 @@ router.get('/total', async (req, res) => {
         return res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-
-
 router.get('/thongketheo-sanpham', async (req, res) => {
     try {
         const query = `
@@ -84,7 +81,6 @@ router.get('/thongketheo-sanpham', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
 // Get low stock products and their colors
 router.get('/low-stock-products', async (req, res) => {
     try {
@@ -120,8 +116,6 @@ router.get('/low-stock-products', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
-
-
 // Định nghĩa endpoint để lấy danh sách các danh mục cùng với tổng số sản phẩm trong mỗi danh mục
 router.get('/getdanhmucandsum', (req, res) => {
     // Truy vấn SQL để lấy danh sách danh mục có id_danhmuc_cha là NULL cùng với tổng số sản phẩm
@@ -154,10 +148,6 @@ router.get('/getdanhmucandsum', (req, res) => {
         res.status(200).json(results);
     });
 });
-
-
-
-
 // Định nghĩa endpoint để lấy danh sách tất cả người dùng cùng với thời gian đăng nhập mới nhất
 router.get('/getusers', (req, res) => {
     // Truy vấn SQL để lấy danh sách người dùng cùng với thời gian đăng nhập mới nhất
@@ -184,7 +174,6 @@ router.get('/getusers', (req, res) => {
         return res.status(200).json(results);
     });
 });
-
 router.get('/getusers-role', (req, res) => {
     // Truy vấn SQL để lấy danh sách người dùng với vai trò 2 và 3, sắp xếp vai trò 3 trước
     const query = `
@@ -209,7 +198,6 @@ router.get('/getusers-role', (req, res) => {
         return res.status(200).json(results);
     });
 });
-
 // Route để lấy đơn hàng mới nhất từ bảng donhang với trạng thái là 1
 router.get('/don-hang-moi-nhat', async (req, res) => {
     try {
@@ -231,11 +219,6 @@ router.get('/don-hang-moi-nhat', async (req, res) => {
         res.status(500).json({ error: 'Lỗi máy chủ' });
     }
 });
-
-
-
-
-
 router.get('/thong-ke-theo-thang', async (req, res) => {
     try {
         // Xác định thời điểm bắt đầu và kết thúc của tháng hiện tại
@@ -290,7 +273,6 @@ router.get('/thong-ke-theo-thang', async (req, res) => {
         res.status(500).json({ error: 'Lỗi máy chủ' });
     }
 });
-
 router.get('/thong-ke-doanh-thu', async (req, res) => {
     try {
         // Lấy thông tin ngày bắt đầu và ngày kết thúc từ query params

@@ -12,9 +12,9 @@ router.use('/uploads', express.static('uploads'));
 
 router.get('/list', (req, res) => {
     // Tạo câu lệnh SQL để lấy danh sách danh mục từ cơ sở dữ liệu
-    const sql = `SELECT id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, time_add, time_update 
-    FROM DanhMuc 
-    ORDER BY time_add DESC; -- Sắp xếp theo thời gian thêm mới nhất
+    const sql = `select id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, time_add, time_update 
+    from danhmuc 
+    order by time_add desc; -- sắp xếp theo thời gian thêm mới nhất
     `;
 
     // Thực thi câu lệnh SQL
@@ -34,15 +34,16 @@ router.get('/:url_Category', (req, res) => {
     const { url_Category } = req.params;
 
     // Tạo câu lệnh SQL để lấy danh sách danh mục từ cơ sở dữ liệu dựa trên url_Category
-    const sql = `SELECT id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, time_add, time_update 
-    FROM DanhMuc AS dm1
-    WHERE dm1.id_danhmuc_cha IS NOT NULL 
-    AND EXISTS (
-        SELECT 1 
-        FROM DanhMuc AS dm2 
-        WHERE dm2.id_danhmuc_cha = dm1.id_danhmuc_cha 
-        AND dm2.id_danhmuc <> dm1.id_danhmuc
+    const sql = `select id_danhmuc, ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, time_add, time_update 
+    from danhmuc as dm1
+    where dm1.id_danhmuc_cha is not null 
+    and exists (
+        select 1 
+        from danhmuc as dm2 
+        where dm2.id_danhmuc_cha = dm1.id_danhmuc_cha 
+        and dm2.id_danhmuc <> dm1.id_danhmuc
     );
+    
     `;
 
     // Thực thi câu lệnh SQL với url_Category nhận được từ URL params
@@ -69,7 +70,10 @@ router.post('/them', multer.single('hinhanh'), (req, res) => {
     }
 
     // Kiểm tra xem danh mục đã tồn tại chưa
-    const checkExistQuery = 'SELECT * FROM DanhMuc WHERE ten_danhmuc = ?';
+    const checkExistQuery = `select * 
+    from danhmuc 
+    where ten_danhmuc = ?
+    `;
     db.query(checkExistQuery, [ten_danhmuc], (checkErr, checkResult) => {
         if (checkErr) {
             console.error(checkErr);
@@ -83,10 +87,14 @@ router.post('/them', multer.single('hinhanh'), (req, res) => {
         let sql;
         let values;
         if (id_danhmuc_cha) {
-            sql = `INSERT INTO DanhMuc (ten_danhmuc, id_danhmuc_cha, hinhanh, url_category) VALUES (?, ?, ?, ?)`;
+            sql = `insert into danhmuc (ten_danhmuc, id_danhmuc_cha, hinhanh, url_category) 
+            values (?, ?, ?, ?)
+            `;
             values = [ten_danhmuc, id_danhmuc_cha, hinhanh, url_category];
         } else {
-            sql = `INSERT INTO DanhMuc (ten_danhmuc, hinhanh, url_category) VALUES (?, ?, ?)`;
+            sql = `insert into danhmuc (ten_danhmuc, hinhanh, url_category) 
+            values (?, ?, ?)
+            `;
             values = [ten_danhmuc, hinhanh, url_category];
         }
 
@@ -108,7 +116,10 @@ router.delete('/xoa/:id', (req, res) => {
     const idDanhMuc = req.params.id;
 
     // Tạo câu lệnh SQL để lấy thông tin của danh mục cần xóa
-    const sqlSelect = `SELECT * FROM DanhMuc WHERE id_danhmuc = ?`;
+    const sqlSelect = `select * 
+    from danhmuc 
+    where id_danhmuc = ?
+    `;
 
     // Thực thi câu lệnh SQL để lấy thông tin của danh mục cần xóa
     db.query(sqlSelect, idDanhMuc, (err, result) => {
@@ -124,7 +135,9 @@ router.delete('/xoa/:id', (req, res) => {
         const hinhAnh = result[0].hinhanh;
 
         // Tạo câu lệnh SQL để xóa danh mục
-        const sqlDelete = `DELETE FROM DanhMuc WHERE id_danhmuc = ?`;
+        const sqlDelete = `delete from danhmuc 
+        where id_danhmuc = ?
+        `;
 
         // Thực thi câu lệnh SQL để xóa danh mục
         db.query(sqlDelete, idDanhMuc, (err, result) => {
@@ -153,7 +166,10 @@ router.delete('/xoa/:id', (req, res) => {
 
 router.get('/get/:id', (req, res) => {
     const categoryId = req.params.id;
-    const selectOneSql = 'SELECT * FROM danhmuc WHERE id_danhmuc = ?';
+    const selectOneSql = `select * 
+    from danhmuc 
+    where id_danhmuc = ?
+    `;
     db.query(selectOneSql, [categoryId], (selectOneErr, result) => {
       if (selectOneErr) {
         return res.status(500).json({ "thong bao": "Lỗi truy vấn chi tiết danh mục", selectOneErr });
@@ -180,7 +196,10 @@ router.get('/get/:id', (req, res) => {
     }
 
     // Tạo câu lệnh SQL để lấy thông tin của danh mục trước khi cập nhật
-    const selectSql = `SELECT hinhanh FROM DanhMuc WHERE id_danhmuc = ?`;
+    const selectSql = `select hinhanh 
+    from danhmuc 
+    where id_danhmuc = ?
+    `;
     db.query(selectSql, [categoryId], (selectErr, selectResult) => {
         if (selectErr) {
             console.error(selectErr);
@@ -198,19 +217,31 @@ router.get('/get/:id', (req, res) => {
         if (hinhanh) {
             // Nếu người dùng cung cấp hình ảnh mới
             if (id_danhmuc_cha) {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, id_danhmuc_cha = ?, hinhanh = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                sql = `update danhmuc 
+                set ten_danhmuc = ?, id_danhmuc_cha = ?, hinhanh = ?, trang_thai = ?, url_category = ?, time_update = now() 
+                where id_danhmuc = ?
+                `;
                 values = [ten_danhmuc, id_danhmuc_cha, hinhanh, trang_thai, url_category, categoryId];
             } else {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, hinhanh = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                sql = `update danhmuc 
+                set ten_danhmuc = ?, hinhanh = ?, trang_thai = ?, url_category = ?, time_update = now() 
+                where id_danhmuc = ?
+                `;
                 values = [ten_danhmuc, hinhanh, trang_thai, url_category, categoryId];
             }
         } else {
             // Nếu người dùng không cung cấp hình ảnh mới
             if (id_danhmuc_cha) {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, id_danhmuc_cha = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                sql = `update danhmuc 
+                set ten_danhmuc = ?, id_danhmuc_cha = ?, trang_thai = ?, url_category = ?, time_update = now() 
+                where id_danhmuc = ?
+                `;
                 values = [ten_danhmuc, id_danhmuc_cha, trang_thai, url_category, categoryId];
             } else {
-                sql = `UPDATE DanhMuc SET ten_danhmuc = ?, trang_thai = ?, url_category = ?, time_update = NOW() WHERE id_danhmuc = ?`;
+                sql = `update danhmuc 
+                set ten_danhmuc = ?, trang_thai = ?, url_category = ?, time_update = now() 
+                where id_danhmuc = ?
+                `;
                 values = [ten_danhmuc, trang_thai, url_category, categoryId];
             }
         }
